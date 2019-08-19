@@ -1,0 +1,11 @@
+{
+  "Emails": {
+    "mailAuth": {
+      "service": "A15_EMAIL_SERVICE",
+      "auth": {
+        "user": "A15_EMAIL_USER",
+        "pass": "A15_EMAIL_PASS"
+      }
+    }
+  }
+}

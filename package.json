@@ -1,0 +1,44 @@
+{
+  "name": "package_compare",
+  "version": "1.0.0",
+  "description": "compares package versions of git repos",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js",
+    "test": "jest  --watchAll --verbose --coverage --runInBand"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "author": "mustafa sisman",
+  "license": "ISC",
+  "dependencies": {
+    "@hapi/joi": "^15.1.0",
+    "axios": "^0.19.0",
+    "config": "^3.2.2",
+    "cors": "^2.8.5",
+    "cron": "^1.7.1",
+    "dotenv": "^8.0.0",
+    "express": "^4.17.1",
+    "express-async-errors": "^3.1.1",
+    "express-rate-limit": "^5.0.0",
+    "helmet": "^3.20.0",
+    "moment": "^2.24.0",
+    "mongoose": "^5.6.9",
+    "morgan": "^1.9.1",
+    "nodemailer": "^6.3.0",
+    "nodemon": "^1.19.1",
+    "sinon": "^7.4.1",
+    "swagger-jsdoc": "^3.4.0",
+    "swagger-ui-express": "^4.0.7",
+    "winston": "^3.2.1",
+    "winston-mongodb": "^5.0.0"
+  },
+  "devDependencies": {
+    "@atolye15/eslint-config-base": "^1.0.17",
+    "eslint": "^6.1.0",
+    "jest": "^24.9.0",
+    "prettier": "^1.18.2",
+    "supertest": "^4.0.2"
+  }
+}

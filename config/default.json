@@ -1,0 +1,48 @@
+{
+  "General": {
+    "serviceName": "package comparison"
+  },
+  "DB": {
+    "url": "mongodb://localhost/compare_package"
+  },
+  "Log": {
+    "logFile": "logfile.log",
+    "uncExcFile": "uncaughtExceptions.log"
+  },
+  "Swagger": {
+    "swaggerDefinition": {
+      "info": {
+        "title": "Basic Auth API",
+        "version": "1.0.0",
+        "description": "auth and user profile management services for demo purposes"
+      }
+    },
+    "apis": ["./routes/*.js"]
+  },
+  "Emails": {
+    "from": "MrSalieri <\"packagereporter@mrsalieri.com\">",
+    "outdatedSubject": "Outdated Packages in Repo"
+  },
+  "FileNames": {
+    "github": {
+      "package.json": {
+        "deps": ["devDependencies", "dependecies"],
+        "registry": "npm"
+      },
+      "composer.json": {
+        "deps": ["require-dev", "require"],
+        "registry": "composer"
+      }
+    }
+  },
+  "Apis": {
+    "github": {
+      "url": "https://api.github.com"
+    }
+  },
+  "Registry": {
+    "registryUpdateThreshold": 720,
+    "registryList": ["npm", "composer"]
+  }
+
+}
