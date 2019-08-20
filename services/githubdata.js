@@ -141,6 +141,7 @@ module.exports = {
   parsePackages: (registry, dependecies) => {
     try {
       const resultArray = [];
+
       Object.entries(dependecies).reduce((ary, dep) => {
         const packageName = dep[0];
         const packageVers = dep[1].trim();
@@ -150,9 +151,11 @@ module.exports = {
           registry_version: null,
           registry
         };
+
         ary.push(packageData);
         return ary;
       }, resultArray);
+
       return { data: resultArray, error: null };
     } catch (e) {
       return { data: null, error: e.mesasge };
