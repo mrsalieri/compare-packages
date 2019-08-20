@@ -10,6 +10,7 @@ const {
 } = require("../services/registrydata");
 const { upsertRepoFromGithub } = require("../services/githubdata");
 
+// For user input validation
 function addEmailValidation(obj) {
   const joiRepoSchema = Joi.object().keys({
     nameIn: Joi.string().required(),
@@ -23,6 +24,7 @@ function addEmailValidation(obj) {
   return Joi.validate(obj, joiRepoSchema);
 }
 
+// For user input validation
 function getRepoDetailsValidation(obj) {
   const joiRepoSchema = Joi.object().keys({
     nameIn: Joi.string().required(),
