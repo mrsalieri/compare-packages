@@ -12,9 +12,9 @@
   "Swagger": {
     "swaggerDefinition": {
       "info": {
-        "title": "Basic Auth API",
+        "title": "Compare Package API",
         "version": "1.0.0",
-        "description": "auth and user profile management services for demo purposes"
+        "description": "package version comparison in repos for demo purposes"
       }
     },
     "apis": ["./routes/*.js"]
