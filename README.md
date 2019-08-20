@@ -1,5 +1,5 @@
 # compare-packages
-NodeJS + MongoDB API for comparing up to dateness of package dependencies of Github repos. Email addresses can be collected to send outdated package reports daily. Also a React UI that developed for the API is available below
+NodeJS + MongoDB API for detecting up to dateness of package dependencies of Github repos. Email addresses can be collected to send outdated package reports daily. Also a React UI that developed for the API is available below
 https://github.com/mrsalieri/compare-packages-ui
 
 ## Installation
@@ -8,15 +8,16 @@ https://github.com/lorenwest/node-config
 https://github.com/motdotla/dotenv
 
 ## Running
-You can start the API by running `npm start`, test it by `npm test`
+You can start the API by running `npm start`, test it by `npm test`. You can also test manually via
+`/api/swagger/api-docs/`
 
 ## Future Improvements
 Tests are not running smoothly, there is a problem related to jest and mongoose possibly
 
-Cannot retrieve data from composer registry, it should be figured out
+Cannot retrieve data from the `Composer` registry, it should be figured out
 
-More complex comparison should be added for detecting outdated packages
+More accurate comparison should be implemented for detecting outdated packages
 
-Express should be isolated from controllers
+`Express` should be isolated from controllers
 
 Email address storage structure may be improved
