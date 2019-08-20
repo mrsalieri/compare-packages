@@ -125,7 +125,9 @@ module.exports = {
 
         updatedPackagePromises.push(pack.save());
       }
+
       await Promise.all(updatedPackagePromises);
+
       return { data: completePackageList, error: null };
     } catch (e) {
       return { data: null, error: e.message };
