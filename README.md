@@ -12,7 +12,11 @@ You can start the API by running `npm start`, test it by `npm test`
 
 ## Future Improvements
 Tests are not running smoothly, there is a problem related to jest and mongoose possibly
+
 Cannot retrieve data from composer registry, it should be figured out
+
 More complex comparison should be added for detecting outdated packages
+
 Express should be isolated from controllers
+
 Email address storage structure may be improved
