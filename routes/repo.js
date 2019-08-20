@@ -45,7 +45,7 @@ router.post("/addemail", async (req, res) => {
 
 /**
  * @swagger
- * /api/repo/getdetails?namespace={namespace}&name={name}:
+ * /api/repo/getdetails?namespaceIn={namespaceIn}&nameIn={nameIn}:
  *   get:
  *     tags:
  *       - Repo
