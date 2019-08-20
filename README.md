@@ -3,7 +3,7 @@ NodeJS + MongoDB API for comparing up to dateness of package dependencies of Git
 https://github.com/mrsalieri/compare-packages-ui
 
 ## Installation
-Just run `npm install` and do the configuration for your system. To do it, check 4 files under the config folder. To do the configuration in env, just create a .env file in the root folder and add environmental settings inside(Including port). For more information about the config and .env structure, please check the links below
+Just run `npm install` and do the configuration for your system. To do it, check 4 files under the config folder. To do the configuration in env, just create a .env file in the root folder and add environmental settings inside(Including port, or the API will run at default port, 8054). For more information about the config and .env structure, please check the links below
 https://github.com/lorenwest/node-config
 https://github.com/motdotla/dotenv
 
