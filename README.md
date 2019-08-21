@@ -14,7 +14,7 @@ You can start the API by running `npm start`, test it by `npm test`. You can als
 ## Future Improvements
 Tests are not running smoothly, there is a problem related to jest and mongoose possibly
 
-Cannot retrieve data from the `Composer` registry, it should be figured out
+(Completed)Cannot retrieve data from the `Composer` registry, it should be figured out
 
 More accurate comparison should be implemented for detecting outdated packages
 
