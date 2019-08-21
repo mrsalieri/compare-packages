@@ -1,6 +1,6 @@
 {
   "name": "package_compare",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "compares package versions of git repos",
   "main": "server.js",
   "scripts": {
