@@ -152,7 +152,14 @@ module.exports = {
           registry
         };
 
-        ary.push(packageData);
+        // Filters composer.json dependencies out of composer
+        if (
+          registry === "npm" ||
+          (registry === "composer" && packageName.indexOf("/") > -1)
+        ) {
+          ary.push(packageData);
+        }
+
         return ary;
       }, resultArray);
 
