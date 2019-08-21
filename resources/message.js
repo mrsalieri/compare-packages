@@ -5,6 +5,7 @@ module.exports = {
   input_error: "Parameters you have provided are not valid",
   no_repo_found: "No repo found with the given parameters",
   parse_error: "Files are not in valid format",
+  registry_error: "Invalid registry name",
   repo_not_found: "The repo you are looking for is not in our database",
   repo_not_found_on_git: "The repo you are looking for is not in Git platforms",
   success: "Success",

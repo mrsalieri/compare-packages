@@ -38,6 +38,9 @@
   "Apis": {
     "github": {
       "url": "https://api.github.com"
+    },
+    "packagist": {
+      "url": "https://packagist.org"
     }
   },
   "Registry": {

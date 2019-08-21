@@ -3,6 +3,7 @@ const { exec } = require("child_process");
 const Joi = require("@hapi/joi");
 const moment = require("moment");
 const config = require("config");
+const { httpReq } = require("../utils/httpReq");
 const { Repo } = require("../models/repo");
 const { Package } = require("../models/package");
 
@@ -13,17 +14,66 @@ const registryConfig = config.get("Registry");
 module.exports = {
   getLatestPackageVersion: async (name, registry) => {
     try {
-      let cmd = "";
+      let response = { data: null, error: "registry_error" };
+
       if (registry === "npm") {
-        cmd = `npm view ${name} version`;
+        response = await module.exports.getNpmPackageVersion(name);
       } else if (registry === "composer") {
-        /*
-          CANNOT FIND HOW TO RETRIEVE COMPOSER DATA
-        */
+        response = await module.exports.getComposerPackageVersion(name);
       }
+
+      return response;
+    } catch (e) {
+      return { data: null, error: e.message };
+    }
+  },
+
+  getNpmPackageVersion: async name => {
+    try {
+      const cmd = `npm view ${name} version`;
+
       const { stdout } = await execPromise(cmd);
 
       return { data: stdout, error: null };
+    } catch (e) {
+      return { data: null, error: e.message };
+    }
+  },
+
+  getComposerPackageVersion: async name => {
+    try {
+      const apiUrl = config.get("Apis.packagist.url");
+
+      const response = await httpReq({
+        method: "get",
+        url: `${apiUrl}/packages/${name}.json`,
+        timeout: 10000
+      });
+
+      const versionInfo = Object.values(response.data.package.versions);
+
+      let latestVersion = "";
+      for (let x = 0; x < versionInfo.length; x += 1) {
+        const versionNormalized = versionInfo[x].version_normalized;
+
+        // normalized version match, i.e 1.2.3.0
+        const regex = /^(\d+\.)(\d+\.)(\d+\.)(\d)$/;
+        const versionMatch = versionNormalized.match(regex);
+
+        if (Array.isArray(versionMatch)) {
+          // substring to remove the 4th degree version
+          const version = versionMatch[0].substring(
+            0,
+            versionMatch[0].length - 2
+          );
+
+          if (version > latestVersion) {
+            latestVersion = version;
+          }
+        }
+      }
+
+      return { data: latestVersion, error: null };
     } catch (e) {
       return { data: null, error: e.message };
     }
