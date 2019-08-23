@@ -12,7 +12,7 @@ You can start the API by running `npm start`, test it by `npm test`. You can als
 `/api/swagger/api-docs/`
 
 ## Future Improvements
-Tests are not running smoothly, there is a problem related to jest and mongoose possibly
+(Completed)Tests are not running smoothly, there is a problem related to jest and mongoose possibly
 
 (Completed)Cannot retrieve data from the `Composer` registry, it should be figured out
 
