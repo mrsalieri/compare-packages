@@ -6,7 +6,7 @@ const server = require("../../../server");
 
 const testEmail = config.get("TestEmail");
 
-jest.setTimeout(10000);
+jest.setTimeout(60000);
 
 describe("Routes.repo.addemail", () => {
   let json;
@@ -85,8 +85,8 @@ describe("Routes.repo.addemail", () => {
     expect(res.status).toBe(200);
 
     const repo = await Repo.findOne({
-      nameIn,
-      namespaceIn
+      name: nameIn,
+      namespace: namespaceIn
     }).lean();
     const { emails } = repo;
 

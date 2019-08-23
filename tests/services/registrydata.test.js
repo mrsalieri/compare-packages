@@ -1,12 +1,14 @@
+require("dotenv").config();
 const moment = require("moment");
 const config = require("config");
+require("../../init/db")();
 const { updateRegistryVersionsOfRepo } = require("../../services/registrydata");
 const { Repo } = require("../../models/repo");
 const { Package } = require("../../models/package");
 
 const testEmail = config.get("TestEmail");
 
-jest.setTimeout(10000);
+jest.setTimeout(60000);
 
 describe("Services.registrydata", () => {
   let nameIn;
@@ -33,18 +35,26 @@ describe("Services.registrydata", () => {
         {
           name: "bootstrap",
           registry: "npm",
-          repo_version: "1.1.1",
+          repo_version: "1.0.0",
+          registry_version: ""
+        },
+        {
+          name: "laravel/laravel",
+          registry: "composer",
+          repo_version: "1.0.0",
           registry_version: ""
         }
       ]
     };
+
     const newRepo = new Repo();
     Object.assign(newRepo, params);
+
     await newRepo.save();
 
     const response = await updateRegistryVersionsOfRepo({
-      nameIn,
-      namespaceIn
+      name: nameIn,
+      namespace: namespaceIn
     });
 
     expect(response.error).toBe(null);

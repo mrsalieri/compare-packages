@@ -11,7 +11,8 @@ module.exports = () => {
       useCreateIndex: true
     })
     .then(() => {
-      winston.info(`Connected to ${db}...`);
+      if (process.env.NODE_ENV !== "test")
+        winston.info(`Connected to ${db}...`);
     })
     .catch(err => {
       winston.error(err.message, err);

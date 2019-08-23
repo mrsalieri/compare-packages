@@ -5,6 +5,8 @@ const EmailHandler = require("../../libs/emailHandler");
 const emailConf = config.get("Emails");
 const testEmail = config.get("TestEmail");
 
+jest.setTimeout(60000);
+
 describe("libs.emailHandler", () => {
   let conf;
   beforeEach(() => {

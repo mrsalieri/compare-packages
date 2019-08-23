@@ -1,6 +1,8 @@
+require("dotenv").config();
+require("../../init/db")();
 const { upsertRepoFromGithub } = require("../../services/githubdata");
 
-// jest.setTimeout(10000);
+jest.setTimeout(60000);
 
 describe("Services.githubdata", () => {
   let nameIn;
