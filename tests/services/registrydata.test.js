@@ -20,8 +20,8 @@ describe("Services.registrydata", () => {
   });
 
   afterEach(async () => {
-    await Repo.remove({});
-    await Package.remove({});
+    await Repo.deleteMany({});
+    await Package.deleteMany({});
   });
 
   it("success", async () => {

@@ -10,7 +10,7 @@ describe("Routes.repo.getdetails", () => {
   let json;
 
   afterEach(async () => {
-    await Repo.remove({});
+    await Repo.deleteMany({});
     await server.close();
   });
 

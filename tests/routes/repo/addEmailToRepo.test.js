@@ -12,8 +12,8 @@ describe("Routes.repo.addemail", () => {
   let json;
 
   afterEach(async () => {
-    await Repo.remove({});
-    await Package.remove({});
+    await Repo.deleteMany({});
+    await Package.deleteMany({});
     await server.close();
   });
 

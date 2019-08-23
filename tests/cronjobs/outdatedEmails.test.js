@@ -14,7 +14,7 @@ describe("Cronjobs.sendOutdatedEmails", () => {
   let namespaceIn;
 
   afterEach(async () => {
-    await Repo.remove({});
+    await Repo.deleteMany({});
   });
 
   beforeEach(() => {
