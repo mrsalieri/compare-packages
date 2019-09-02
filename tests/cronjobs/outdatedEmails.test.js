@@ -44,7 +44,7 @@ describe("Cronjobs.sendOutdatedEmails", () => {
     await newRepo.save();
 
     const response = await sendOutdatedEmails();
-    const result = response.filter(res => res.error !== null);
+    const result = response.data.filter(res => res.error !== null);
 
     expect(result.length).toBe(0);
   });
