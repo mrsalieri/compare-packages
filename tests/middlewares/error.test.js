@@ -1,6 +1,6 @@
 const request = require("supertest");
 const server = require("../../server");
-const RepoController = require("../../controllers/repo");
+const { repoController } = require("../../utils/instances");
 
 describe("middlewares.error", () => {
   let json;
@@ -20,7 +20,7 @@ describe("middlewares.error", () => {
   };
 
   it("status 500 unexpected error", async () => {
-    RepoController.addEmailToRepo = () => {
+    repoController.addEmailToRepo = () => {
       throw new Error("test error");
     };
 

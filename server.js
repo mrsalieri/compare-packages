@@ -7,6 +7,8 @@ const app = express();
 require("./init/security")(app);
 require("./init/logging")(app);
 require("./init/config")();
+require("./init/subscribers");
+require("./init/instances");
 require("./init/routes")(app);
 require("./init/db")();
 require("./cronjobs/outdatedEmails");

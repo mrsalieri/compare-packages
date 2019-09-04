@@ -2,8 +2,9 @@ require("dotenv").config();
 const moment = require("moment");
 const config = require("config");
 require("../../init/db")();
+require("../../init/instances");
 const { Repo } = require("../../models/repo");
-const { sendOutdatedEmails } = require("../../controllers/repo");
+const { repoController } = require("../../utils/instances");
 
 const testEmail = config.get("TestEmail");
 
@@ -43,7 +44,7 @@ describe("Cronjobs.sendOutdatedEmails", () => {
     Object.assign(newRepo, params);
     await newRepo.save();
 
-    const response = await sendOutdatedEmails();
+    const response = await repoController.sendOutdatedEmails();
     const result = response.data.filter(res => res.error !== null);
 
     expect(result.length).toBe(0);

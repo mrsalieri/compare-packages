@@ -2,12 +2,8 @@ const Joi = require("@hapi/joi");
 const config = require("config");
 const MessageHandler = require("../libs/messageHandler");
 const EmailHandler = require("../libs/emailHandler");
-const { Repo, prepareOutdatedEmailHtml } = require("../models/repo");
 const { generateUniquePackageKey } = require("../models/package");
-const {
-  updateRegistryVersionsOfRepo,
-  upsertPackageVersions
-} = require("../services/registrydata");
+const { upsertPackageVersions } = require("../services/registrydata");
 const { upsertRepoFromGithub } = require("../services/githubdata");
 
 // For user input validation
@@ -34,8 +30,14 @@ function getRepoDetailsValidation(obj) {
   return Joi.validate(obj, joiRepoSchema);
 }
 
-module.exports = {
-  addEmailToRepo: async (req, res) => {
+class RepoController {
+  constructor(ee, repoModel) {
+    this.eventEmitter = ee;
+    this.Repo = repoModel.Repo;
+    this.prepareOutdatedEmailHtml = repoModel.prepareOutdatedEmailHtml;
+  }
+
+  async addEmailToRepo(req, res) {
     const { nameIn, namespaceIn, emailListIn } = req.body;
 
     // To handle email list inputs sent as string(Swagger Problem)
@@ -77,7 +79,7 @@ module.exports = {
         .handle();
     }
 
-    const repo = await Repo.findOne({ name, namespace });
+    const repo = await this.Repo.findOne({ name, namespace });
 
     // merge arrays and satisfy uniqueness
     const emails = [...new Set([...repo.emails, ...emailListAry])];
@@ -85,20 +87,16 @@ module.exports = {
     Object.assign(repo, { emails });
     await repo.save();
 
-    // Update registry versions
-    updateRegistryVersionsOfRepo({
-      name: repo.name,
-      namespace: repo.namespace
-    });
+    this.eventEmitter.emit("upsert_repo", { name, namespace });
 
     // Send response
     return new MessageHandler(req, res)
       .success()
       .setMessageCode("success")
       .handle();
-  },
+  }
 
-  getRepoDetails: async (req, res) => {
+  async getRepoDetails(req, res) {
     const { nameIn, namespaceIn } = req.query;
 
     // User input validation
@@ -119,7 +117,7 @@ module.exports = {
     const namespace = namespaceIn.toLowerCase();
 
     // Get data
-    const repo = await Repo.findOne({
+    const repo = await this.Repo.findOne({
       name,
       namespace
     })
@@ -144,13 +142,13 @@ module.exports = {
       .setMessageCode("success")
       .setData(payload)
       .handle();
-  },
+  }
 
-  sendOutdatedEmails: async filter => {
+  async sendOutdatedEmails(filter) {
     try {
       const emailConf = config.get("Emails");
 
-      let repoList = await Repo.find(filter);
+      let repoList = await this.Repo.find(filter);
       if (!repoList) {
         return { data: null, error: "no_repo_found" };
       }
@@ -161,7 +159,7 @@ module.exports = {
       });
       await Promise.all(repoPromises);
 
-      repoList = await Repo.find(filter);
+      repoList = await this.Repo.find(filter);
       if (!repoList) {
         return { data: null, error: "unexpected_error" };
       }
@@ -217,7 +215,7 @@ module.exports = {
       });
       await Promise.all(repoPackagePromises);
 
-      repoList = await Repo.find(filter);
+      repoList = await this.Repo.find(filter);
       if (!repoList) {
         return { data: null, error: "unexpected_error" };
       }
@@ -225,7 +223,7 @@ module.exports = {
       // Send emails with necessary data
       const emailPromises = repoList.reduce((promises, repo) => {
         const { emails, name } = repo;
-        const emailHtml = prepareOutdatedEmailHtml(repo);
+        const emailHtml = this.prepareOutdatedEmailHtml(repo);
 
         emails.reduce((acc, email) => {
           acc.push(
@@ -249,4 +247,6 @@ module.exports = {
       return { data: null, error: e.message };
     }
   }
-};
+}
+
+module.exports = RepoController;

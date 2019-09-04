@@ -1,6 +1,8 @@
 const winston = require("winston");
 const { CronJob } = require("cron");
-const { sendOutdatedEmails } = require("../controllers/repo");
+const { repoController } = require("../utils/instances");
+
+const { sendOutdatedEmails } = { repoController };
 
 // IIFE for cron job
 (() => {

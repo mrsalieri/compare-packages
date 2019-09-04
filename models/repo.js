@@ -117,7 +117,7 @@ function prepareOutdatedEmailHtml(repo) {
         <th>package</th>
         <th>registry</th>
         <th>repo version</th>
-        <th>regstry version</th>
+        <th>registry version</th>
       </tr>`;
     const emailHtml = outdatedPackages.reduce((acc, val) => {
       return `${acc}<tr>

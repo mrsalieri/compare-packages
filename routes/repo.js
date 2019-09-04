@@ -1,5 +1,5 @@
 const express = require("express");
-const RepoController = require("../controllers/repo");
+const { repoController } = require("../utils/instances");
 
 const router = express.Router();
 
@@ -40,7 +40,7 @@ const router = express.Router();
  */
 
 router.post("/addemail", async (req, res) => {
-  await RepoController.addEmailToRepo(req, res);
+  await repoController.addEmailToRepo(req, res);
 });
 
 /**
@@ -73,7 +73,7 @@ router.post("/addemail", async (req, res) => {
  */
 
 router.get("/getdetails", async (req, res) => {
-  await RepoController.getRepoDetails(req, res);
+  await repoController.getRepoDetails(req, res);
 });
 
 module.exports = router;
