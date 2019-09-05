@@ -5,8 +5,6 @@ class MessageHandler {
   constructor(req, res) {
     this.req = req;
     this.res = res;
-    // console.log(req.body);
-    this.lang = req.body.lang;
 
     this.json = {
       status: 0,

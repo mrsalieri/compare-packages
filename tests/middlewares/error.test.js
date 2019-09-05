@@ -1,6 +1,9 @@
 const request = require("supertest");
+const config = require("config");
 const server = require("../../server");
 const { repoController } = require("../../utils/instances");
+
+const testEmail = config.get("TestEmail");
 
 describe("middlewares.error", () => {
   let json;
@@ -10,7 +13,11 @@ describe("middlewares.error", () => {
   });
 
   beforeEach(() => {
-    json = {};
+    json = {
+      nameIn: "react",
+      namespaceIn: "facebook",
+      emailListIn: [testEmail]
+    };
   });
 
   const exec = () => {

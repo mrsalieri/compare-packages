@@ -1,4 +1,8 @@
 const express = require("express");
+const {
+  repoAddEmail,
+  repoGetDetails
+} = require("../middlewares/inputHandlers");
 const { repoController } = require("../utils/instances");
 
 const router = express.Router();
@@ -39,8 +43,8 @@ const router = express.Router();
  *         description: repo not found on remote
  */
 
-router.post("/addemail", async (req, res) => {
-  await repoController.addEmailToRepo(req, res);
+router.post("/addemail", [repoAddEmail], async (req, res) => {
+  await repoController.addEmailToRepo(req.body.repoAddEmail, res);
 });
 
 /**
@@ -72,8 +76,8 @@ router.post("/addemail", async (req, res) => {
  *         description: repo not found
  */
 
-router.get("/getdetails", async (req, res) => {
-  await repoController.getRepoDetails(req, res);
+router.get("/getdetails", [repoGetDetails], async (req, res) => {
+  await repoController.getRepoDetails(req.query.repoGetDetails, res);
 });
 
 module.exports = router;

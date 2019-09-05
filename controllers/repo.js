@@ -1,34 +1,9 @@
-const Joi = require("@hapi/joi");
 const config = require("config");
 const MessageHandler = require("../libs/messageHandler");
 const EmailHandler = require("../libs/emailHandler");
 const { generateUniquePackageKey } = require("../models/package");
 const { upsertPackageVersions } = require("../services/registrydata");
 const { upsertRepoFromGithub } = require("../services/githubdata");
-
-// For user input validation
-function addEmailValidation(obj) {
-  const joiRepoSchema = Joi.object().keys({
-    nameIn: Joi.string().required(),
-    namespaceIn: Joi.string().required(),
-    emailListIn: Joi.array()
-      .min(1)
-      .required()
-      .items(Joi.string().email())
-  });
-
-  return Joi.validate(obj, joiRepoSchema);
-}
-
-// For user input validation
-function getRepoDetailsValidation(obj) {
-  const joiRepoSchema = Joi.object().keys({
-    nameIn: Joi.string().required(),
-    namespaceIn: Joi.string().required()
-  });
-
-  return Joi.validate(obj, joiRepoSchema);
-}
 
 class RepoController {
   constructor(ee, repoModel) {
@@ -37,43 +12,13 @@ class RepoController {
     this.prepareOutdatedEmailHtml = repoModel.prepareOutdatedEmailHtml;
   }
 
-  async addEmailToRepo(req, res) {
-    const { nameIn, namespaceIn, emailListIn } = req.body;
-
-    // To handle email list inputs sent as string(Swagger Problem)
-    const arrayValidation = Joi.array().validate(emailListIn);
-    const stringValidation = Joi.string().validate(emailListIn);
-    let emailListInAry = [];
-
-    if (arrayValidation.error === null) {
-      emailListInAry = emailListIn;
-    } else if (stringValidation.error === null) {
-      emailListInAry = emailListIn.split(",");
-    }
-
-    // User input validation
-    const repoValidation = addEmailValidation({
-      nameIn,
-      namespaceIn,
-      emailListIn: emailListInAry
-    });
-    if (repoValidation.error) {
-      return new MessageHandler(req, res)
-        .badRequest()
-        .setMessageCode("input_error")
-        .setData(repoValidation.error.details[0].message)
-        .handle();
-    }
-
-    // inputs are lowercased for db operations
-    const name = nameIn.toLowerCase();
-    const namespace = namespaceIn.toLowerCase();
-    const emailListAry = emailListInAry.map(email => email.toLowerCase());
+  async addEmailToRepo(input, res) {
+    const { name, namespace, emailList } = input;
 
     // Create or update github package data
     const githubResponse = await upsertRepoFromGithub(name, namespace);
     if (githubResponse.error) {
-      return new MessageHandler(req, res)
+      return new MessageHandler(input, res)
         .notFound()
         .setMessageCode(githubResponse.error)
         .handle();
@@ -82,7 +27,7 @@ class RepoController {
     const repo = await this.Repo.findOne({ name, namespace });
 
     // merge arrays and satisfy uniqueness
-    const emails = [...new Set([...repo.emails, ...emailListAry])];
+    const emails = [...new Set([...repo.emails, ...emailList])];
 
     Object.assign(repo, { emails });
     await repo.save();
@@ -90,31 +35,14 @@ class RepoController {
     this.eventEmitter.emit("upsert_repo", { name, namespace });
 
     // Send response
-    return new MessageHandler(req, res)
+    return new MessageHandler(input, res)
       .success()
       .setMessageCode("success")
       .handle();
   }
 
-  async getRepoDetails(req, res) {
-    const { nameIn, namespaceIn } = req.query;
-
-    // User input validation
-    const repoValidation = getRepoDetailsValidation({
-      nameIn,
-      namespaceIn
-    });
-    if (repoValidation.error) {
-      return new MessageHandler(req, res)
-        .badRequest()
-        .setMessageCode("input_error")
-        .setData(repoValidation.error.details[0].message)
-        .handle();
-    }
-
-    // inputs are lowecased for db operations
-    const name = nameIn.toLowerCase();
-    const namespace = namespaceIn.toLowerCase();
+  async getRepoDetails(input, res) {
+    const { name, namespace } = input;
 
     // Get data
     const repo = await this.Repo.findOne({
@@ -125,7 +53,7 @@ class RepoController {
       .lean();
 
     if (!repo) {
-      return new MessageHandler(req, res)
+      return new MessageHandler(input, res)
         .notFound()
         .setMessageCode("repo_not_found")
         .handle();
@@ -137,7 +65,7 @@ class RepoController {
     };
 
     // Send response
-    return new MessageHandler(req, res)
+    return new MessageHandler(input, res)
       .success()
       .setMessageCode("success")
       .setData(payload)
