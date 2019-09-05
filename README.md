@@ -14,10 +14,10 @@ You can start the API by running `npm start`, test it by `npm test`. You can als
 ## Future Improvements
 (Completed)Tests are not running smoothly, there is a problem related to jest and mongoose possibly
 
-(Completed)Cannot retrieve data from the `Composer` registry, it should be figured out
+(Completed)Cannot retrieve data from the Composer registry, it should be figured out
 
 More accurate comparison should be implemented for detecting outdated packages
 
-`Express` should be isolated from controllers
+(Completed)Express should be isolated from controllers
 
 Email address storage structure may be improved
