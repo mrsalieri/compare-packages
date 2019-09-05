@@ -4,6 +4,7 @@ const {
   repoGetDetails
 } = require("../middlewares/inputHandlers");
 const { repoController } = require("../utils/instances");
+const MessageHandler = require("../libs/messageHandler");
 
 const router = express.Router();
 
@@ -44,7 +45,12 @@ const router = express.Router();
  */
 
 router.post("/addemail", [repoAddEmail], async (req, res) => {
-  await repoController.addEmailToRepo(req.body.repoAddEmail, res);
+  const result = await repoController.addEmailToRepo(
+    req.body.repoAddEmail,
+    res
+  );
+
+  return new MessageHandler(result, res).handle();
 });
 
 /**
@@ -77,7 +83,12 @@ router.post("/addemail", [repoAddEmail], async (req, res) => {
  */
 
 router.get("/getdetails", [repoGetDetails], async (req, res) => {
-  await repoController.getRepoDetails(req.query.repoGetDetails, res);
+  const result = await repoController.getRepoDetails(
+    req.query.repoGetDetails,
+    res
+  );
+
+  return new MessageHandler(result, res).handle();
 });
 
 module.exports = router;

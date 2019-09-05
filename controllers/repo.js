@@ -1,5 +1,4 @@
 const config = require("config");
-const MessageHandler = require("../libs/messageHandler");
 const EmailHandler = require("../libs/emailHandler");
 const { generateUniquePackageKey } = require("../models/package");
 const { upsertPackageVersions } = require("../services/registrydata");
@@ -12,16 +11,15 @@ class RepoController {
     this.prepareOutdatedEmailHtml = repoModel.prepareOutdatedEmailHtml;
   }
 
-  async addEmailToRepo(input, res) {
-    const { name, namespace, emailList } = input;
-
+  async addEmailToRepo({ name, namespace, emailList }) {
     // Create or update github package data
     const githubResponse = await upsertRepoFromGithub(name, namespace);
     if (githubResponse.error) {
-      return new MessageHandler(input, res)
-        .notFound()
-        .setMessageCode(githubResponse.error)
-        .handle();
+      return {
+        status: 404,
+        code: githubResponse.error,
+        data: null
+      };
     }
 
     const repo = await this.Repo.findOne({ name, namespace });
@@ -35,15 +33,14 @@ class RepoController {
     this.eventEmitter.emit("upsert_repo", { name, namespace });
 
     // Send response
-    return new MessageHandler(input, res)
-      .success()
-      .setMessageCode("success")
-      .handle();
+    return {
+      status: 200,
+      code: "success",
+      data: null
+    };
   }
 
-  async getRepoDetails(input, res) {
-    const { name, namespace } = input;
-
+  async getRepoDetails({ name, namespace }) {
     // Get data
     const repo = await this.Repo.findOne({
       name,
@@ -53,10 +50,11 @@ class RepoController {
       .lean();
 
     if (!repo) {
-      return new MessageHandler(input, res)
-        .notFound()
-        .setMessageCode("repo_not_found")
-        .handle();
+      return {
+        status: 404,
+        code: "repo_not_found",
+        data: null
+      };
     }
 
     // Response preparation
@@ -65,11 +63,11 @@ class RepoController {
     };
 
     // Send response
-    return new MessageHandler(input, res)
-      .success()
-      .setMessageCode("success")
-      .setData(payload)
-      .handle();
+    return {
+      status: 200,
+      code: "success",
+      data: payload
+    };
   }
 
   async sendOutdatedEmails(filter) {

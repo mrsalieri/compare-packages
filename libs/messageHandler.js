@@ -2,15 +2,13 @@ const message = require("../resources/message");
 
 // Http response creator
 class MessageHandler {
-  constructor(req, res) {
-    this.req = req;
+  constructor({ status, code, data }, res) {
     this.res = res;
-
     this.json = {
-      status: 0,
-      code: "",
-      message: ""
+      status
     };
+
+    this.setMessageCode(code).setData(data);
   }
 
   setMessageCode(code) {
