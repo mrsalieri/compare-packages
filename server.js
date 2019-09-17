@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const winston = require("winston");
+const gracefulShutdown = require("./init/shutdown");
 
 const app = express();
 
@@ -17,5 +18,7 @@ const port = process.env.PORT || 8054;
 const server = app.listen(port, () =>
   winston.info(`Listening on port ${port}...`)
 );
+
+gracefulShutdown(server);
 
 module.exports = server;
