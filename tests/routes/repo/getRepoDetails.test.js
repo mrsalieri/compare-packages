@@ -7,7 +7,7 @@ const server = require("../../../server");
 const testEmail = config.get("TestEmail");
 
 describe("Routes.repo.getdetails", () => {
-  let json;
+  let input;
 
   afterEach(async () => {
     await Repo.deleteMany({});
@@ -15,7 +15,7 @@ describe("Routes.repo.getdetails", () => {
   });
 
   beforeEach(() => {
-    json = {
+    input = {
       nameIn: "react",
       namespaceIn: "facebook"
     };
@@ -24,10 +24,10 @@ describe("Routes.repo.getdetails", () => {
   const getRepo = () =>
     request(server)
       .get("/api/repo/getdetails")
-      .query(json);
+      .query(input);
 
   it("nameIn required with 400", async () => {
-    delete json.nameIn;
+    delete input.nameIn;
 
     const res = await getRepo();
 
@@ -35,7 +35,7 @@ describe("Routes.repo.getdetails", () => {
   });
 
   it("namespaceIn required with 400", async () => {
-    delete json.namespaceIn;
+    delete input.namespaceIn;
 
     const res = await getRepo();
 
@@ -43,7 +43,7 @@ describe("Routes.repo.getdetails", () => {
   });
 
   it("repo not found with 404", async () => {
-    json.namespaceIn = "sadasaddasd";
+    input.namespaceIn = "sadasaddasd";
 
     const res = await getRepo();
 
@@ -51,7 +51,7 @@ describe("Routes.repo.getdetails", () => {
   });
 
   it("success", async () => {
-    const { nameIn, namespaceIn } = json;
+    const { nameIn, namespaceIn } = input;
     const params = {
       name: nameIn,
       namespace: namespaceIn,

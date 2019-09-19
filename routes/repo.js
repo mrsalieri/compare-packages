@@ -45,10 +45,7 @@ const router = express.Router();
  */
 
 router.post("/addemail", [repoAddEmail], async (req, res) => {
-  const result = await repoController.addEmailToRepo(
-    req.body.repoAddEmail,
-    res
-  );
+  const result = await repoController.addEmailToRepo(req.body.repoAddEmail);
 
   return new MessageHandler(result, res).handle();
 });
@@ -83,10 +80,7 @@ router.post("/addemail", [repoAddEmail], async (req, res) => {
  */
 
 router.get("/getdetails", [repoGetDetails], async (req, res) => {
-  const result = await repoController.getRepoDetails(
-    req.query.repoGetDetails,
-    res
-  );
+  const result = await repoController.getRepoDetails(req.query.repoGetDetails);
 
   return new MessageHandler(result, res).handle();
 });

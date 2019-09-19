@@ -9,7 +9,7 @@ const testEmail = config.get("TestEmail");
 jest.setTimeout(60000);
 
 describe("Routes.repo.addemail", () => {
-  let json;
+  let input;
 
   afterEach(async () => {
     await Repo.deleteMany({});
@@ -18,7 +18,7 @@ describe("Routes.repo.addemail", () => {
   });
 
   beforeEach(() => {
-    json = {
+    input = {
       nameIn: "react",
       namespaceIn: "facebook",
       emailListIn: [testEmail]
@@ -28,10 +28,10 @@ describe("Routes.repo.addemail", () => {
   const addEmail = () =>
     request(server)
       .post("/api/repo/addemail")
-      .send(json);
+      .send(input);
 
   it("nameIn required with 400", async () => {
-    delete json.nameIn;
+    delete input.nameIn;
 
     const res = await addEmail();
 
@@ -39,7 +39,7 @@ describe("Routes.repo.addemail", () => {
   });
 
   it("namespaceIn required with 400", async () => {
-    delete json.namespaceIn;
+    delete input.namespaceIn;
 
     const res = await addEmail();
 
@@ -47,7 +47,7 @@ describe("Routes.repo.addemail", () => {
   });
 
   it("emailListIn required with 400", async () => {
-    delete json.emailListIn;
+    delete input.emailListIn;
 
     const res = await addEmail();
 
@@ -55,7 +55,7 @@ describe("Routes.repo.addemail", () => {
   });
 
   it("emailListIn invalid email fail with 400", async () => {
-    json.emailListIn = ["sd"];
+    input.emailListIn = ["sd"];
 
     const res = await addEmail();
 
@@ -63,7 +63,7 @@ describe("Routes.repo.addemail", () => {
   });
 
   it("emailListIn empty list fail with 400", async () => {
-    json.emailListIn = [];
+    input.emailListIn = [];
 
     const res = await addEmail();
 
@@ -71,7 +71,7 @@ describe("Routes.repo.addemail", () => {
   });
 
   it("repo not found with 404", async () => {
-    json.namespaceIn = "sadasaddasd";
+    input.namespaceIn = "sadasaddasd";
 
     const res = await addEmail();
 
@@ -79,7 +79,7 @@ describe("Routes.repo.addemail", () => {
   });
 
   it("success", async () => {
-    const { nameIn, namespaceIn, emailListIn } = json;
+    const { nameIn, namespaceIn, emailListIn } = input;
 
     const res = await addEmail();
     expect(res.status).toBe(200);

@@ -5,13 +5,13 @@ const { upsertPackageVersions } = require("../services/registrydata");
 const { upsertRepoFromGithub } = require("../services/githubdata");
 
 class RepoController {
-  constructor(ee, repoModel) {
-    this.eventEmitter = ee;
+  constructor(eventEmitter, repoModel) {
+    this.eventEmitter = eventEmitter;
     this.Repo = repoModel.Repo;
     this.prepareOutdatedEmailHtml = repoModel.prepareOutdatedEmailHtml;
   }
 
-  async addEmailToRepo({ name, namespace, emailList }) {
+  async addEmailToRepo({ name, namespace, emailGroup }) {
     // Create or update github package data
     const githubResponse = await upsertRepoFromGithub(name, namespace);
     if (githubResponse.error) {
@@ -25,7 +25,7 @@ class RepoController {
     const repo = await this.Repo.findOne({ name, namespace });
 
     // merge arrays and satisfy uniqueness
-    const emails = [...new Set([...repo.emails, ...emailList])];
+    const emails = [...new Set([...repo.emails, ...emailGroup])];
 
     Object.assign(repo, { emails });
     await repo.save();
@@ -74,24 +74,24 @@ class RepoController {
     try {
       const emailConf = config.get("Emails");
 
-      let repoList = await this.Repo.find(filter);
-      if (!repoList) {
+      let repoGroup = await this.Repo.find(filter);
+      if (!repoGroup) {
         return { data: null, error: "no_repo_found" };
       }
 
       // Update all repo data before sending emails
-      const repoPromises = repoList.map(repo => {
+      const repoUpserts = repoGroup.map(repo => {
         return upsertRepoFromGithub(repo.name, repo.namespace);
       });
-      await Promise.all(repoPromises);
+      await Promise.all(repoUpserts);
 
-      repoList = await this.Repo.find(filter);
-      if (!repoList) {
+      repoGroup = await this.Repo.find(filter);
+      if (!repoGroup) {
         return { data: null, error: "unexpected_error" };
       }
 
       // Create an object that holds packages in repos uniquely
-      const packageListObj = repoList.reduce((listObj, repo) => {
+      const packageLookUp = repoGroup.reduce((initialLookUp, repo) => {
         repo.packages.reduce((acc, pack) => {
           const key = generateUniquePackageKey(pack);
           if (Object.prototype.hasOwnProperty.call(acc, key)) {
@@ -100,26 +100,26 @@ class RepoController {
 
           acc[key] = { name: pack.name, registry: pack.registry };
           return acc;
-        }, listObj);
-        return listObj;
+        }, initialLookUp);
+        return initialLookUp;
       }, {});
-      const packageListArray = Object.values(packageListObj);
+      const packageGroup = Object.values(packageLookUp);
 
       // Insert or update info for all necessary packages before sending emails
-      const packageList = await upsertPackageVersions(packageListArray);
-      if (packageList.error) {
-        return { data: null, error: packageList.error };
+      const updatedPackageGroup = await upsertPackageVersions(packageGroup);
+      if (updatedPackageGroup.error) {
+        return { data: null, error: updatedPackageGroup.error };
       }
 
       // Update package list object to hold the updated data
-      for (let idx = 0; idx < packageList.data.length; idx += 1) {
-        const pack = packageList.data[idx];
-        const key = generateUniquePackageKey(pack);
-        packageListObj[key] = pack.toObject();
+      for (let idx = 0; idx < updatedPackageGroup.data.length; idx += 1) {
+        const pack = updatedPackageGroup.data[idx];
+        const lookUpKey = generateUniquePackageKey(pack);
+        packageLookUp[lookUpKey] = pack.toObject();
       }
 
       // Update repo package data
-      const repoPackagePromises = repoList.map(repo => {
+      const repoPackageUpdates = repoGroup.map(repo => {
         const { packages } = repo;
         const newPackages = [];
 
@@ -127,7 +127,7 @@ class RepoController {
           const pack = packages[idx];
           const key = generateUniquePackageKey(pack);
           // Package list object is used like dictionary
-          const registryVersion = packageListObj[key].version;
+          const registryVersion = packageLookUp[key].version;
 
           const newPack = {
             ...pack.toObject(),
@@ -139,15 +139,15 @@ class RepoController {
         Object.assign(repo, { packages: newPackages });
         return repo.save();
       });
-      await Promise.all(repoPackagePromises);
+      await Promise.all(repoPackageUpdates);
 
-      repoList = await this.Repo.find(filter);
-      if (!repoList) {
+      repoGroup = await this.Repo.find(filter);
+      if (!repoGroup) {
         return { data: null, error: "unexpected_error" };
       }
 
       // Send emails with necessary data
-      const emailPromises = repoList.reduce((promises, repo) => {
+      const sendEmails = repoGroup.reduce((promises, repo) => {
         const { emails, name } = repo;
         const emailHtml = this.prepareOutdatedEmailHtml(repo);
 
@@ -166,7 +166,7 @@ class RepoController {
         return promises;
       }, []);
 
-      const emailResponses = await Promise.all(emailPromises);
+      const emailResponses = await Promise.all(sendEmails);
 
       return { data: emailResponses, error: null };
     } catch (e) {

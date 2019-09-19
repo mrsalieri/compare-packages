@@ -44,13 +44,13 @@ module.exports = {
     try {
       const apiUrl = config.get("Apis.packagist.url");
 
-      const response = await httpReq({
+      const apiResponse = await httpReq({
         method: "get",
         url: `${apiUrl}/packages/${name}.json`,
         timeout: 10000
       });
 
-      const versionInfo = Object.values(response.data.package.versions);
+      const versionInfo = Object.values(apiResponse.data.package.versions);
 
       let latestVersion = "";
       for (let x = 0; x < versionInfo.length; x += 1) {
@@ -100,12 +100,12 @@ module.exports = {
         };
       });
 
-      const params = {
+      const updateParams = {
         packages: updatedPackages,
         last_updated: moment().utc()
       };
 
-      Object.assign(repo, params);
+      Object.assign(repo, updateParams);
       await repo.save();
       return { data: "success", error: null };
     } catch (e) {
@@ -113,20 +113,20 @@ module.exports = {
     }
   },
 
-  upsertPackageVersions: async packages => {
+  upsertPackageVersions: async packageGroup => {
     try {
-      const recordedPackages = await Package.find();
+      const packagesInDB = await Package.find();
 
       // Find missing packages and create full list
-      const completePackageList = packages.map(pack => {
-        const match = recordedPackages.find(recordedPackage => {
+      const completePackageList = packageGroup.map(pack => {
+        const matchedPackage = packagesInDB.find(recordedPackage => {
           return (
             recordedPackage.name === pack.name &&
             recordedPackage.registry === pack.registry
           );
         });
 
-        if (!match) {
+        if (!matchedPackage) {
           const params = {
             name: pack.name,
             registry: pack.registry,
@@ -136,7 +136,7 @@ module.exports = {
           return new Package(params);
         }
 
-        return match;
+        return matchedPackage;
       });
 
       // List of packages that need version check
@@ -154,18 +154,18 @@ module.exports = {
       });
 
       // Get recent versions from registries
-      const packagePromises = packagesWillBeUpdated.map(pack => {
+      const packageVersionPromises = packagesWillBeUpdated.map(pack => {
         return module.exports.getLatestPackageVersion(pack.name, pack.registry);
       });
-      const packageResponses = await Promise.all(packagePromises);
+      const latestPackageVersions = await Promise.all(packageVersionPromises);
 
       // Update versions of packages
-      const updatedPackagePromises = [];
+      const packageUpdatePromises = [];
       for (let idx = 0; idx < packagesWillBeUpdated.length; idx += 1) {
         const pack = packagesWillBeUpdated[idx];
         let registryVersion = "0";
 
-        const { data } = packageResponses[idx];
+        const { data } = latestPackageVersions[idx];
         if (data) {
           registryVersion = data.trim();
         }
@@ -173,10 +173,10 @@ module.exports = {
         pack.version = registryVersion;
         pack.last_updated = moment().utc();
 
-        updatedPackagePromises.push(pack.save());
+        packageUpdatePromises.push(pack.save());
       }
 
-      await Promise.all(updatedPackagePromises);
+      await Promise.all(packageUpdatePromises);
 
       return { data: completePackageList, error: null };
     } catch (e) {

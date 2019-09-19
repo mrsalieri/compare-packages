@@ -57,17 +57,17 @@ const joiPackageSchema = Joi.object().keys({
 const joiEmailSchema = Joi.string().email();
 
 // Input validation for creating package
-function validatePackage(data) {
-  return Joi.validate(data, joiPackageSchema);
+function validatePackage(pack) {
+  return Joi.validate(pack, joiPackageSchema);
 }
 
 // Input validation for emails
-function validateEmail(data) {
-  return Joi.validate(data, joiEmailSchema);
+function validateEmail(email) {
+  return Joi.validate(email, joiEmailSchema);
 }
 
 // Input validation for creating repo
-function validateRepo(data) {
+function validateRepo(repo) {
   const schema = Joi.object().keys({
     name: Joi.string().required(),
     namespace: Joi.string().required(),
@@ -77,7 +77,7 @@ function validateRepo(data) {
     last_updated: Joi.date().timestamp()
   });
 
-  return Joi.validate(data, schema);
+  return Joi.validate(repo, schema);
 }
 
 function isPackageOutdated(pack) {

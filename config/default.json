@@ -26,11 +26,11 @@
   "FileNames": {
     "github": {
       "package.json": {
-        "deps": ["devDependencies", "dependecies"],
+        "dependencyKeys": ["devDependencies", "dependecies"],
         "registry": "npm"
       },
       "composer.json": {
-        "deps": ["require-dev", "require"],
+        "dependencyKeys": ["require-dev", "require"],
         "registry": "composer"
       }
     }

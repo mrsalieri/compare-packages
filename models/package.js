@@ -24,7 +24,7 @@ const packageSchema = new Schema({
 const Package = mongoose.model("Package", packageSchema);
 
 // Input validation for creating package
-function validatePackage(data) {
+function validatePackage(pack) {
   const schema = Joi.object().keys({
     name: Joi.string().required(),
     version: Joi.string().required(),
@@ -34,7 +34,7 @@ function validatePackage(data) {
     last_updated: Joi.date().timestamp()
   });
 
-  return Joi.validate(data, schema);
+  return Joi.validate(pack, schema);
 }
 
 function generateUniquePackageKey(pack) {

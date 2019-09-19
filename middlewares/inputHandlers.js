@@ -8,24 +8,24 @@ module.exports = {
     // To handle email list inputs sent as string(Swagger Problem)
     const arrayValidation = Joi.array().validate(emailListIn);
     const stringValidation = Joi.string().validate(emailListIn);
-    let emailListInAry = [];
+    let emailGroup = [];
 
     if (arrayValidation.error === null) {
-      emailListInAry = emailListIn;
+      emailGroup = emailListIn;
     } else if (stringValidation.error === null) {
-      emailListInAry = emailListIn.split(",");
+      emailGroup = emailListIn.split(",");
     }
-    const obj = { nameIn, namespaceIn, emailListInAry };
+    const obj = { nameIn, namespaceIn, emailGroup };
 
-    const joiRepoSchema = Joi.object().keys({
+    const joiRepo = Joi.object().keys({
       nameIn: Joi.string().required(),
       namespaceIn: Joi.string().required(),
-      emailListInAry: Joi.array()
+      emailGroup: Joi.array()
         .min(1)
         .required()
         .items(Joi.string().email())
     });
-    const { error } = Joi.validate(obj, joiRepoSchema);
+    const { error } = Joi.validate(obj, joiRepo);
 
     if (error) {
       return new MessageHandler(req, res)
@@ -39,7 +39,7 @@ module.exports = {
     req.body.repoAddEmail = {
       name: nameIn.toLowerCase(),
       namespace: namespaceIn.toLowerCase(),
-      emailList: emailListInAry.map(email => email.toLowerCase())
+      emailGroup: emailGroup.map(email => email.toLowerCase())
     };
 
     return next();
@@ -50,12 +50,12 @@ module.exports = {
 
     const obj = { nameIn, namespaceIn };
 
-    const joiRepoSchema = Joi.object().keys({
+    const joiRepo = Joi.object().keys({
       nameIn: Joi.string().required(),
       namespaceIn: Joi.string().required()
     });
 
-    const { error } = Joi.validate(obj, joiRepoSchema);
+    const { error } = Joi.validate(obj, joiRepo);
     if (error) {
       return new MessageHandler(req, res)
         .badRequest()

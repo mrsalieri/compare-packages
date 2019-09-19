@@ -6,14 +6,14 @@ const { repoController } = require("../../utils/instances");
 const testEmail = config.get("TestEmail");
 
 describe("middlewares.error", () => {
-  let json;
+  let input;
 
   afterEach(async () => {
     await server.close();
   });
 
   beforeEach(() => {
-    json = {
+    input = {
       nameIn: "react",
       namespaceIn: "facebook",
       emailListIn: [testEmail]
@@ -23,7 +23,7 @@ describe("middlewares.error", () => {
   const exec = () => {
     return request(server)
       .post("/api/repo/addemail")
-      .send(json);
+      .send(input);
   };
 
   it("status 500 unexpected error", async () => {

@@ -2,14 +2,14 @@ const request = require("supertest");
 const server = require("../../server");
 
 describe("middlewares.notFound", () => {
-  let json;
+  let input;
 
   afterEach(async () => {
     await server.close();
   });
 
   beforeEach(() => {
-    json = {
+    input = {
       name: "test8054"
     };
   });
@@ -17,7 +17,7 @@ describe("middlewares.notFound", () => {
   const exec = () => {
     return request(server)
       .post("/api/gdhmgdggh")
-      .send(json);
+      .send(input);
   };
 
   it("status 404 url not found", async () => {

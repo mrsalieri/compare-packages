@@ -3,7 +3,7 @@ const config = require("config");
 const { httpReq } = require("../utils/httpReq");
 const { Repo } = require("../models/repo");
 
-const fileInfo = config.get("FileNames.github");
+const filesToDownload = config.get("FileNames.github");
 
 module.exports = {
   getRepoContentsFromGithub: async (name, namespace) => {
@@ -21,33 +21,33 @@ module.exports = {
   },
 
   // Finds and downloads necessary files in github response data
-  getFilesFromGithub: async data => {
+  getFilesFromGithub: async repoContents => {
     try {
-      let files = [];
+      let fileContents = [];
 
-      if (Array.isArray(data) && data.length > 0) {
-        files = data.filter(file => {
-          const fileNames = Object.keys(fileInfo);
+      if (Array.isArray(repoContents) && repoContents.length > 0) {
+        fileContents = repoContents.filter(file => {
+          const fileNames = Object.keys(filesToDownload);
           return fileNames.indexOf(file.name) > -1 && file.type === "file";
         });
       }
 
-      const fileData = files.map(val => {
+      const fileSummaries = fileContents.map(val => {
         return { name: val.name, url: val.download_url };
       });
-      const promises = fileData.map(file => {
+      const fileRequests = fileSummaries.map(file => {
         return httpReq({
           method: "get",
           url: file.url
         });
       });
 
-      const responses = await Promise.all(promises);
-      const dataResponse = responses.map((response, idx) => {
-        return { content: response.data, fileData: fileData[idx] };
+      const fileResponses = await Promise.all(fileRequests);
+      const files = fileResponses.map((response, idx) => {
+        return { content: response.data, fileData: fileSummaries[idx] };
       });
 
-      return { data: dataResponse, error: null };
+      return { data: files, error: null };
     } catch (e) {
       return { data: null, error: e.message };
     }
@@ -56,23 +56,32 @@ module.exports = {
   // Returns package data in files
   getPackagesFromFiles: files => {
     try {
-      const data = files.reduce((acc, file) => {
+      const packages = files.reduce((initialPackages, file) => {
         const { fileData, content } = file;
+        const fileNamesToParse = Object.keys(filesToDownload);
+
         // Detects necessary files and merges results
-        Object.keys(fileInfo).map(fileName => {
-          if (fileData.name === fileName) {
-            fileInfo[fileName].deps.map(key => {
-              if (Object.prototype.hasOwnProperty.call(content, key)) {
-                const deps = content[key];
-                const { registry } = fileInfo[fileName];
+        fileNamesToParse.map(targetFileName => {
+          if (fileData.name === targetFileName) {
+            const targetFile = filesToDownload[targetFileName];
+            const { registry } = targetFile;
 
-                const result = module.exports.parsePackages(registry, deps);
+            targetFile.dependencyKeys.map(dependencyKey => {
+              if (
+                Object.prototype.hasOwnProperty.call(content, dependencyKey)
+              ) {
+                const dependencies = content[dependencyKey];
 
-                if (result.data) {
-                  result.data.reduce((accRef, val) => {
-                    accRef.push(val);
-                    return accRef;
-                  }, acc);
+                const packageResponse = module.exports.parsePackages(
+                  registry,
+                  dependencies
+                );
+
+                if (packageResponse.data) {
+                  packageResponse.data.reduce((acc, val) => {
+                    acc.push(val);
+                    return acc;
+                  }, initialPackages);
                 }
               }
               return null;
@@ -81,9 +90,9 @@ module.exports = {
           return null;
         });
 
-        return acc;
+        return initialPackages;
       }, []);
-      return { data, error: null };
+      return { data: packages, error: null };
     } catch (e) {
       return { data: null, error: e.message };
     }
@@ -114,22 +123,22 @@ module.exports = {
         return { data: null, error: "parse_error" };
       }
 
-      const params = {
+      const repoParams = {
         packages: packages.data,
         last_updated: moment.utc()
       };
 
       let repo = await Repo.findOne({ name, namespace });
       if (!repo) {
-        params.name = name;
-        params.namespace = namespace;
-        params.active = true;
-        params.emails = [];
+        repoParams.name = name;
+        repoParams.namespace = namespace;
+        repoParams.active = true;
+        repoParams.emails = [];
 
         repo = new Repo();
       }
 
-      Object.assign(repo, params);
+      Object.assign(repo, repoParams);
       const response = await repo.save();
 
       return { data: response, error: null };
@@ -138,16 +147,16 @@ module.exports = {
     }
   },
 
-  parsePackages: (registry, dependecies) => {
+  parsePackages: (registry, dependencies) => {
     try {
-      const resultArray = [];
+      const parsedPackages = [];
 
-      Object.entries(dependecies).reduce((ary, dep) => {
-        const packageName = dep[0];
-        const packageVers = dep[1].trim();
+      Object.entries(dependencies).reduce((initParsedPackages, dependency) => {
+        const packageName = dependency[0];
+        const packageVersion = dependency[1].trim();
         const packageData = {
           name: packageName,
-          repo_version: packageVers,
+          repo_version: packageVersion,
           registry_version: null,
           registry
         };
@@ -157,13 +166,13 @@ module.exports = {
           registry === "npm" ||
           (registry === "composer" && packageName.indexOf("/") > -1)
         ) {
-          ary.push(packageData);
+          initParsedPackages.push(packageData);
         }
 
-        return ary;
-      }, resultArray);
+        return initParsedPackages;
+      }, parsedPackages);
 
-      return { data: resultArray, error: null };
+      return { data: parsedPackages, error: null };
     } catch (e) {
       return { data: null, error: e.mesasge };
     }
