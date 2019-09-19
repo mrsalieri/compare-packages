@@ -8,7 +8,7 @@ const { repoController } = require("../../utils/instances");
 
 const testEmail = config.get("TestEmail");
 
-jest.setTimeout(60000);
+jest.setTimeout(120000);
 
 describe("Cronjobs.sendOutdatedEmails", () => {
   let nameIn;

@@ -5,7 +5,8 @@
   "TestEmail": "msisman8054@gmail.com",
   "Emails": {
     "mailAuth": {
-      "service": "A15_EMAIL_SERVICE",
+      "host": "A15_EMAIL_HOST",
+      "port": "A15_EMAIL_PORT",
       "auth": {
         "user": "A15_EMAIL_USER",
         "pass": "A15_EMAIL_PASS"

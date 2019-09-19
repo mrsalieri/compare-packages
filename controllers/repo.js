@@ -70,28 +70,28 @@ class RepoController {
     };
   }
 
-  async sendOutdatedEmails(filter) {
+  async sendOutdatedEmails(repoFilter) {
     try {
       const emailConf = config.get("Emails");
 
-      let repoGroup = await this.Repo.find(filter);
-      if (!repoGroup) {
+      let reposToBeEmailed = await this.Repo.find(repoFilter);
+      if (!reposToBeEmailed) {
         return { data: null, error: "no_repo_found" };
       }
 
       // Update all repo data before sending emails
-      const repoUpserts = repoGroup.map(repo => {
+      const repoUpserts = reposToBeEmailed.map(repo => {
         return upsertRepoFromGithub(repo.name, repo.namespace);
       });
       await Promise.all(repoUpserts);
 
-      repoGroup = await this.Repo.find(filter);
-      if (!repoGroup) {
+      reposToBeEmailed = await this.Repo.find(repoFilter);
+      if (!reposToBeEmailed) {
         return { data: null, error: "unexpected_error" };
       }
 
-      // Create an object that holds packages in repos uniquely
-      const packageLookUp = repoGroup.reduce((initialLookUp, repo) => {
+      // Create an object that holds packages in repos uniquely, will be used as a look up table
+      const packageLookUp = reposToBeEmailed.reduce((initialLookUp, repo) => {
         repo.packages.reduce((acc, pack) => {
           const key = generateUniquePackageKey(pack);
           if (Object.prototype.hasOwnProperty.call(acc, key)) {
@@ -103,15 +103,15 @@ class RepoController {
         }, initialLookUp);
         return initialLookUp;
       }, {});
-      const packageGroup = Object.values(packageLookUp);
 
       // Insert or update info for all necessary packages before sending emails
+      const packageGroup = Object.values(packageLookUp);
       const updatedPackageGroup = await upsertPackageVersions(packageGroup);
       if (updatedPackageGroup.error) {
         return { data: null, error: updatedPackageGroup.error };
       }
 
-      // Update package list object to hold the updated data
+      // Update package look up object to hold the updated data
       for (let idx = 0; idx < updatedPackageGroup.data.length; idx += 1) {
         const pack = updatedPackageGroup.data[idx];
         const lookUpKey = generateUniquePackageKey(pack);
@@ -119,7 +119,7 @@ class RepoController {
       }
 
       // Update repo package data
-      const repoPackageUpdates = repoGroup.map(repo => {
+      const repoPackageUpdates = reposToBeEmailed.map(repo => {
         const { packages } = repo;
         const newPackages = [];
 
@@ -141,13 +141,13 @@ class RepoController {
       });
       await Promise.all(repoPackageUpdates);
 
-      repoGroup = await this.Repo.find(filter);
-      if (!repoGroup) {
+      reposToBeEmailed = await this.Repo.find(repoFilter);
+      if (!reposToBeEmailed) {
         return { data: null, error: "unexpected_error" };
       }
 
       // Send emails with necessary data
-      const sendEmails = repoGroup.reduce((promises, repo) => {
+      const sendEmails = reposToBeEmailed.reduce((promises, repo) => {
         const { emails, name } = repo;
         const emailHtml = this.prepareOutdatedEmailHtml(repo);
 
