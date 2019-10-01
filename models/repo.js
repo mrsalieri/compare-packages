@@ -107,31 +107,27 @@ function isPackageOutdated(pack) {
 }
 
 function prepareOutdatedEmailHtml(repo) {
-  try {
-    const { packages } = repo;
-    const outdatedPackages = packages.filter(pack => {
-      return isPackageOutdated(pack);
-    });
-    const emailHtmlInit = `<table>
-      <tr>
-        <th>package</th>
-        <th>registry</th>
-        <th>repo version</th>
-        <th>registry version</th>
-      </tr>`;
-    const emailHtml = outdatedPackages.reduce((acc, val) => {
-      return `${acc}<tr>
-                      <td>${val.name}</td>
-                      <td>${val.registry}</td>
-                      <td>${val.repo_version || "0"}</td>
-                      <td>${val.registry_version || "0"}</td>
-                    </tr>`;
-    }, emailHtmlInit);
+  const { packages } = repo;
+  const outdatedPackages = packages.filter(pack => {
+    return isPackageOutdated(pack);
+  });
+  const emailHtmlInit = `<table>
+    <tr>
+      <th>package</th>
+      <th>registry</th>
+      <th>repo version</th>
+      <th>registry version</th>
+    </tr>`;
+  const emailHtml = outdatedPackages.reduce((acc, val) => {
+    return `${acc}<tr>
+                    <td>${val.name}</td>
+                    <td>${val.registry}</td>
+                    <td>${val.repo_version || "0"}</td>
+                    <td>${val.registry_version || "0"}</td>
+                  </tr>`;
+  }, emailHtmlInit);
 
-    return `${emailHtml}</table>`;
-  } catch (e) {
-    return null;
-  }
+  return `${emailHtml}</table>`;
 }
 
 module.exports = {

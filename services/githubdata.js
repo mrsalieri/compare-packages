@@ -6,7 +6,7 @@ const { Repo } = require("../models/repo");
 const filesToDownload = config.get("FileNames.github");
 
 module.exports = {
-  getRepoContentsFromGithub: async (name, namespace) => {
+  requestRepoContentsFromGithub: async (name, namespace) => {
     try {
       const apiUrl = config.get("Apis.github.url");
       const response = await httpReq({
@@ -14,88 +14,80 @@ module.exports = {
         url: `${apiUrl}/repos/${namespace}/${name}/contents`
       });
 
-      return { data: response.data, error: null };
+      return response.data;
     } catch (e) {
-      return { data: null, error: e.message };
+      throw new Error("repo_not_found_on_github");
     }
   },
 
-  // Finds and downloads necessary files in github response data
-  getFilesFromGithub: async repoContents => {
-    try {
-      let fileContents = [];
-
-      if (Array.isArray(repoContents) && repoContents.length > 0) {
-        fileContents = repoContents.filter(file => {
-          const fileNames = Object.keys(filesToDownload);
-          return fileNames.indexOf(file.name) > -1 && file.type === "file";
-        });
-      }
-
-      const fileSummaries = fileContents.map(val => {
-        return { name: val.name, url: val.download_url };
-      });
-      const fileRequests = fileSummaries.map(file => {
-        return httpReq({
-          method: "get",
-          url: file.url
-        });
-      });
-
-      const fileResponses = await Promise.all(fileRequests);
-      const files = fileResponses.map((response, idx) => {
-        return { content: response.data, fileData: fileSummaries[idx] };
-      });
-
-      return { data: files, error: null };
-    } catch (e) {
-      return { data: null, error: e.message };
+  prepareFileSummariesToDownload: repoContents => {
+    if (!Array.isArray(repoContents) || repoContents.length === 0) {
+      throw new Error("empty_repo_contents");
     }
+
+    const fileContents = repoContents.filter(file => {
+      const fileNames = Object.keys(filesToDownload);
+      return fileNames.indexOf(file.name) > -1 && file.type === "file";
+    });
+
+    const fileSummaries = fileContents.map(val => {
+      return { name: val.name, url: val.download_url };
+    });
+
+    return fileSummaries;
+  },
+
+  requestFilesFromGithubAndPrepareData: async fileSummaries => {
+    const fileRequests = fileSummaries.map(file => {
+      return httpReq({
+        method: "get",
+        url: file.url
+      });
+    });
+
+    const fileResponses = await Promise.all(fileRequests);
+    const files = fileResponses.map((response, idx) => {
+      return { content: response.data, summary: fileSummaries[idx] };
+    });
+
+    return files;
   },
 
   // Returns package data in files
   getPackagesFromFiles: files => {
-    try {
-      const packages = files.reduce((initialPackages, file) => {
-        const { fileData, content } = file;
-        const fileNamesToParse = Object.keys(filesToDownload);
+    const packages = files.reduce((initialPackages, file) => {
+      const { summary, content } = file;
+      const fileNamesToParse = Object.keys(filesToDownload);
 
-        // Detects necessary files and merges results
-        fileNamesToParse.map(targetFileName => {
-          if (fileData.name === targetFileName) {
-            const targetFile = filesToDownload[targetFileName];
-            const { registry } = targetFile;
+      // Detects necessary files and merges results
+      fileNamesToParse.map(targetFileName => {
+        if (summary.name === targetFileName) {
+          const targetFile = filesToDownload[targetFileName];
+          const { registry } = targetFile;
 
-            targetFile.dependencyKeys.map(dependencyKey => {
-              if (
-                Object.prototype.hasOwnProperty.call(content, dependencyKey)
-              ) {
-                const dependencies = content[dependencyKey];
+          targetFile.dependencyKeys.map(dependencyKey => {
+            if (Object.prototype.hasOwnProperty.call(content, dependencyKey)) {
+              const dependencies = content[dependencyKey];
 
-                const packageResponse = module.exports.parsePackages(
-                  registry,
-                  dependencies
-                );
+              const packageResponse = module.exports.parsePackages(
+                registry,
+                dependencies
+              );
 
-                if (packageResponse.data) {
-                  packageResponse.data.reduce((acc, val) => {
-                    acc.push(val);
-                    return acc;
-                  }, initialPackages);
-                }
-              }
-              return null;
-            });
-          }
-          return null;
-        });
+              packageResponse.reduce((acc, val) => {
+                acc.push(val);
+                return acc;
+              }, initialPackages);
+            }
+            return null;
+          });
+        }
+        return null;
+      });
 
-        return initialPackages;
-      }, []);
-      return { data: packages, error: null };
-    } catch (e) {
-      return { data: null, error: e.message };
-    }
+      return initialPackages;
+    }, []);
+    return packages;
   },
 
   // Creates or updates given repo data
@@ -104,27 +96,24 @@ module.exports = {
       const name = nameIn.toLowerCase();
       const namespace = namespaceIn.toLowerCase();
 
-      const contents = await module.exports.getRepoContentsFromGithub(
+      const repoContents = await module.exports.requestRepoContentsFromGithub(
         name,
         namespace
       );
-      if (contents.error) {
-        return { data: null, error: "repo_not_found_on_git" };
-      }
 
-      const files = await module.exports.getFilesFromGithub(contents.data);
-      if (files.error) {
-        return { data: null, error: "files_not_found_on_git" };
-      }
+      const fileSummaries = module.exports.prepareFileSummariesToDownload(
+        repoContents
+      );
+
+      const files = await module.exports.requestFilesFromGithubAndPrepareData(
+        fileSummaries
+      );
 
       // Parse package data
-      const packages = module.exports.getPackagesFromFiles(files.data);
-      if (packages.error) {
-        return { data: null, error: "parse_error" };
-      }
+      const packages = module.exports.getPackagesFromFiles(files);
 
       const repoParams = {
-        packages: packages.data,
+        packages,
         last_updated: moment.utc()
       };
 
@@ -143,38 +132,34 @@ module.exports = {
 
       return { data: response, error: null };
     } catch (e) {
-      return { data: null, error: "unexpected_error" };
+      return { data: null, error: e };
     }
   },
 
   parsePackages: (registry, dependencies) => {
-    try {
-      const parsedPackages = [];
+    const parsedPackages = [];
 
-      Object.entries(dependencies).reduce((initParsedPackages, dependency) => {
-        const packageName = dependency[0];
-        const packageVersion = dependency[1].trim();
-        const packageData = {
-          name: packageName,
-          repo_version: packageVersion,
-          registry_version: null,
-          registry
-        };
+    Object.entries(dependencies).reduce((initParsedPackages, dependency) => {
+      const packageName = dependency[0];
+      const packageVersion = dependency[1].trim();
+      const packageData = {
+        name: packageName,
+        repo_version: packageVersion,
+        registry_version: null,
+        registry
+      };
 
-        // Filters composer.json dependencies out of composer
-        if (
-          registry === "npm" ||
-          (registry === "composer" && packageName.indexOf("/") > -1)
-        ) {
-          initParsedPackages.push(packageData);
-        }
+      // Filters composer.json dependencies out of composer
+      if (
+        registry === "npm" ||
+        (registry === "composer" && packageName.indexOf("/") > -1)
+      ) {
+        initParsedPackages.push(packageData);
+      }
 
-        return initParsedPackages;
-      }, parsedPackages);
+      return initParsedPackages;
+    }, parsedPackages);
 
-      return { data: parsedPackages, error: null };
-    } catch (e) {
-      return { data: null, error: e.mesasge };
-    }
+    return parsedPackages;
   }
 };

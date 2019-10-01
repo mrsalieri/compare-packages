@@ -17,7 +17,7 @@ class RepoController {
     if (githubResponse.error) {
       return {
         status: 404,
-        code: githubResponse.error,
+        code: "unexpected_error",
         data: null
       };
     }

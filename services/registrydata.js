@@ -14,7 +14,7 @@ const registryConfig = config.get("Registry");
 module.exports = {
   getLatestPackageVersion: async (name, registry) => {
     try {
-      let response = { data: null, error: "registry_error" };
+      let response = { data: null, error: new Error("registry_error") };
 
       if (registry === "npm") {
         response = await module.exports.getNpmPackageVersion(name);
@@ -24,59 +24,56 @@ module.exports = {
 
       return response;
     } catch (e) {
-      return { data: null, error: e.message };
+      return { data: null, error: e };
     }
   },
 
   getNpmPackageVersion: async name => {
-    try {
-      const cmd = `npm view ${name} version`;
+    const cmd = `npm view ${name} version`;
+    const { stdout } = await execPromise(cmd);
 
-      const { stdout } = await execPromise(cmd);
+    return stdout;
+  },
 
-      return { data: stdout, error: null };
-    } catch (e) {
-      return { data: null, error: e.message };
+  extractComposerPackageVersion: apiResponse => {
+    const versionInfo = Object.values(apiResponse.data.package.versions);
+
+    let latestVersion = "";
+    for (let x = 0; x < versionInfo.length; x += 1) {
+      const versionNormalized = versionInfo[x].version_normalized;
+
+      // normalized version match, i.e 1.2.3.0
+      const regex = /^(\d+\.)(\d+\.)(\d+\.)(\d)$/;
+      const versionMatch = versionNormalized.match(regex);
+
+      if (Array.isArray(versionMatch)) {
+        // substring to remove the 4th degree version
+        const version = versionMatch[0].substring(
+          0,
+          versionMatch[0].length - 2
+        );
+
+        if (version > latestVersion) {
+          latestVersion = version;
+        }
+      }
     }
+
+    return latestVersion;
   },
 
   getComposerPackageVersion: async name => {
-    try {
-      const apiUrl = config.get("Apis.packagist.url");
+    const apiUrl = config.get("Apis.packagist.url");
 
-      const apiResponse = await httpReq({
-        method: "get",
-        url: `${apiUrl}/packages/${name}.json`,
-        timeout: 10000
-      });
+    const apiResponse = await httpReq({
+      method: "get",
+      url: `${apiUrl}/packages/${name}.json`,
+      timeout: 10000
+    });
 
-      const versionInfo = Object.values(apiResponse.data.package.versions);
+    const version = module.exports.extractComposerPackageVersion(apiResponse);
 
-      let latestVersion = "";
-      for (let x = 0; x < versionInfo.length; x += 1) {
-        const versionNormalized = versionInfo[x].version_normalized;
-
-        // normalized version match, i.e 1.2.3.0
-        const regex = /^(\d+\.)(\d+\.)(\d+\.)(\d)$/;
-        const versionMatch = versionNormalized.match(regex);
-
-        if (Array.isArray(versionMatch)) {
-          // substring to remove the 4th degree version
-          const version = versionMatch[0].substring(
-            0,
-            versionMatch[0].length - 2
-          );
-
-          if (version > latestVersion) {
-            latestVersion = version;
-          }
-        }
-      }
-
-      return { data: latestVersion, error: null };
-    } catch (e) {
-      return { data: null, error: e.message };
-    }
+    return version;
   },
 
   updateRegistryVersionsOfRepo: async repoFilter => {
@@ -109,7 +106,7 @@ module.exports = {
       await repo.save();
       return { data: "success", error: null };
     } catch (e) {
-      return { data: null, error: e.message };
+      return { data: null, error: e };
     }
   },
 
@@ -180,7 +177,7 @@ module.exports = {
 
       return { data: completePackageList, error: null };
     } catch (e) {
-      return { data: null, error: e.message };
+      return { data: null, error: e };
     }
   },
 
