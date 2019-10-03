@@ -45,7 +45,9 @@ const router = express.Router();
  */
 
 router.post("/addemail", [repoAddEmail], async (req, res) => {
-  const result = await repoController.addEmailToRepo(req.body.repoAddEmail);
+  const result = await repoController.upsertRepoDataAndAppendEmail(
+    req.body.repoAddEmail
+  );
 
   return new MessageHandler(result, res).handle();
 });

@@ -27,7 +27,7 @@ describe("middlewares.error", () => {
   };
 
   it("status 500 unexpected error", async () => {
-    repoController.addEmailToRepo = () => {
+    repoController.upsertRepoDataAndAppendEmail = () => {
       throw new Error("test error");
     };
 

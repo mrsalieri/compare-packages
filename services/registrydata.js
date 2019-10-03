@@ -22,7 +22,7 @@ module.exports = {
         response = await module.exports.getComposerPackageVersion(name);
       }
 
-      return response;
+      return { data: response, error: null };
     } catch (e) {
       return { data: null, error: e };
     }
