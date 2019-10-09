@@ -3,13 +3,16 @@ const EmailHandler = require("../libs/emailHandler");
 const { generateUniquePackageKey } = require("../models/package");
 const { upsertPackageVersions } = require("../services/registrydata");
 const { upsertRepoFromGithub } = require("../services/githubdata");
+const { objectHelper } = require("../utils/commonHelpers");
+
+const { hasOwnPropertyCall } = objectHelper;
 
 // Create an object that holds packages in repos uniquely, will be used as a look up table
 function createPackageLookup(repoGroup) {
   const packageLookUp = repoGroup.reduce((initialLookUp, repo) => {
     repo.packages.reduce((acc, pack) => {
       const key = generateUniquePackageKey(pack);
-      if (Object.prototype.hasOwnProperty.call(acc, key)) {
+      if (hasOwnPropertyCall(acc, key)) {
         return acc;
       }
 
@@ -154,8 +157,8 @@ class RepoController {
     const { emails, name } = repo;
     const emailHtml = this.prepareOutdatedEmailHtml(repo);
 
-    const promises = emails.reduce((acc, email) => {
-      acc.push(
+    const promises = emails.reduce((accumulator, email) => {
+      accumulator.push(
         new EmailHandler()
           .setTransporter(emailConf.mailAuth)
           .setSubject(`${emailConf.outdatedSubject} ${name}`)
@@ -164,7 +167,7 @@ class RepoController {
           .setHtml(emailHtml)
           .sendEmail()
       );
-      return acc;
+      return accumulator;
     }, []);
     return promises;
   }
@@ -172,12 +175,12 @@ class RepoController {
   async findAndSendOutdatedEmailsForRepos(repoFilter) {
     const reposToBeEmailed = await this.findRepos(repoFilter);
 
-    const sendEmails = reposToBeEmailed.reduce((promises, repo) => {
+    const sendEmails = reposToBeEmailed.reduce((accumulator, repo) => {
       const promisesToBeAppended = this.createOutdatedEmailPromisesForRepo(
         repo
       );
 
-      return promises.concat(promisesToBeAppended);
+      return accumulator.concat(promisesToBeAppended);
     }, []);
 
     const emailResponses = await Promise.all(sendEmails);

@@ -5,22 +5,18 @@ const { upsertRepoFromGithub } = require("../../services/githubdata");
 jest.setTimeout(60000);
 
 describe("Services.githubdata", () => {
-  let nameIn;
-  let namespaceIn;
-
-  beforeEach(() => {
-    nameIn = "react";
-    namespaceIn = "facebook";
-  });
-
   it("success", async () => {
+    const nameIn = "react";
+    const namespaceIn = "facebook";
+
     const response = await upsertRepoFromGithub(nameIn, namespaceIn);
 
     expect(response.error).toBe(null);
   });
 
   it("error", async () => {
-    nameIn = "asdasda";
+    const nameIn = "asdasda";
+    const namespaceIn = "facebook";
 
     const response = await upsertRepoFromGithub(nameIn, namespaceIn);
 

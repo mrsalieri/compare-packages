@@ -8,12 +8,9 @@ const testEmail = config.get("TestEmail");
 jest.setTimeout(60000);
 
 describe("libs.emailHandler", () => {
-  let conf;
-  beforeEach(() => {
-    conf = { ...emailConf };
-  });
-
   it("success", async () => {
+    const conf = { ...emailConf };
+
     const email = new EmailHandler()
       .setTransporter(conf.mailAuth)
       .setSubject("test email")
@@ -26,7 +23,9 @@ describe("libs.emailHandler", () => {
   });
 
   it("error", async () => {
+    const conf = { ...emailConf };
     conf.mailAuth = {};
+
     const email = new EmailHandler()
       .setTransporter(conf.mailAuth)
       .setSubject("test email")

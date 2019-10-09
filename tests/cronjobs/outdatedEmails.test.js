@@ -11,22 +11,14 @@ const testEmail = config.get("TestEmail");
 jest.setTimeout(120000);
 
 describe("Cronjobs.sendOutdatedEmails", () => {
-  let nameIn;
-  let namespaceIn;
-
   afterEach(async () => {
     await Repo.deleteMany({});
   });
 
-  beforeEach(() => {
-    nameIn = "react";
-    namespaceIn = "facebook";
-  });
-
   it("success", async () => {
     const params = {
-      name: nameIn,
-      namespace: namespaceIn,
+      name: "react",
+      namespace: "facebook",
       active: true,
       last_updated: moment.utc(),
       emails: [testEmail],

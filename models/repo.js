@@ -1,5 +1,8 @@
 const Joi = require("@hapi/joi");
 const { mongoose } = require("../utils/db");
+const { objectHelper } = require("../utils/commonHelpers");
+
+const { hasOwnPropertyCall } = objectHelper;
 
 const { Schema } = mongoose;
 
@@ -83,8 +86,8 @@ function validateRepo(repo) {
 function isPackageOutdated(pack) {
   try {
     if (
-      Object.prototype.hasOwnProperty.call(pack, "repo_version") &&
-      Object.prototype.hasOwnProperty.call(pack, "registry_version")
+      hasOwnPropertyCall(pack, "repo_version") &&
+      hasOwnPropertyCall(pack, "registry_version")
     ) {
       let repoVersion = pack.repo_version;
       const registryVersion = pack.registry_version;
@@ -93,6 +96,7 @@ function isPackageOutdated(pack) {
       */
       const firstChar = repoVersion.charAt(0);
       const numericCheck = Joi.string().regex(/^[0-9]+$/, "numbers");
+
       const validation = numericCheck.validate(firstChar);
       if (validation.error) {
         repoVersion = repoVersion.substring(1);
@@ -111,6 +115,7 @@ function prepareOutdatedEmailHtml(repo) {
   const outdatedPackages = packages.filter(pack => {
     return isPackageOutdated(pack);
   });
+
   const emailHtmlInit = `<table>
     <tr>
       <th>package</th>
@@ -118,8 +123,8 @@ function prepareOutdatedEmailHtml(repo) {
       <th>repo version</th>
       <th>registry version</th>
     </tr>`;
-  const emailHtml = outdatedPackages.reduce((acc, val) => {
-    return `${acc}<tr>
+  const emailHtml = outdatedPackages.reduce((accumulator, val) => {
+    return `${accumulator}<tr>
                     <td>${val.name}</td>
                     <td>${val.registry}</td>
                     <td>${val.repo_version || "0"}</td>

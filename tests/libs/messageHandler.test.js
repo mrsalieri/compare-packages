@@ -1,10 +1,6 @@
 const MessageHandler = require("../../libs/messageHandler");
 
 describe("libs.messageHandler", () => {
-  let req;
-  let res;
-  let body;
-
   function Response() {
     function setStatus(statusCode) {
       this.statusCode = statusCode;
@@ -20,20 +16,14 @@ describe("libs.messageHandler", () => {
     this.send = send;
   }
 
-  beforeEach(() => {
-    body = {
-      status: 400,
-      code: "error",
+  it("status 200 message", () => {
+    const body = {
+      status: 200,
+      code: "success",
       data: {}
     };
-
-    req = { body: {} };
-    res = new Response();
-  });
-
-  it("status 200 message", () => {
-    body.status = 200;
-    body.code = "success";
+    const req = { body: {} };
+    const res = new Response();
 
     new MessageHandler(req, res)
       .success()
@@ -45,6 +35,14 @@ describe("libs.messageHandler", () => {
   });
 
   it("status 400 message", () => {
+    const body = {
+      status: 400,
+      code: "error",
+      data: {}
+    };
+    const req = { body: {} };
+    const res = new Response();
+
     new MessageHandler(req, res)
       .badRequest()
       .setMessageCode(body.code)
@@ -55,7 +53,13 @@ describe("libs.messageHandler", () => {
   });
 
   it("status 401 message", () => {
-    body.status = 401;
+    const body = {
+      status: 401,
+      code: "error",
+      data: {}
+    };
+    const req = { body: {} };
+    const res = new Response();
 
     new MessageHandler(req, res)
       .unauthorized()
@@ -67,7 +71,13 @@ describe("libs.messageHandler", () => {
   });
 
   it("status 403 message", () => {
-    body.status = 403;
+    const body = {
+      status: 403,
+      code: "error",
+      data: {}
+    };
+    const req = { body: {} };
+    const res = new Response();
 
     new MessageHandler(req, res)
       .forbidden()
@@ -79,7 +89,13 @@ describe("libs.messageHandler", () => {
   });
 
   it("status 404 message", () => {
-    body.status = 404;
+    const body = {
+      status: 404,
+      code: "error",
+      data: {}
+    };
+    const req = { body: {} };
+    const res = new Response();
 
     new MessageHandler(req, res)
       .notFound()

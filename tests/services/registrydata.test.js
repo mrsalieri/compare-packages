@@ -11,20 +11,15 @@ const testEmail = config.get("TestEmail");
 jest.setTimeout(60000);
 
 describe("Services.registrydata", () => {
-  let nameIn;
-  let namespaceIn;
-
-  beforeEach(() => {
-    nameIn = "react";
-    namespaceIn = "facebook";
-  });
-
   afterEach(async () => {
     await Repo.deleteMany({});
     await Package.deleteMany({});
   });
 
   it("success", async () => {
+    const nameIn = "react";
+    const namespaceIn = "facebook";
+
     const params = {
       name: nameIn,
       namespace: namespaceIn,
@@ -61,7 +56,8 @@ describe("Services.registrydata", () => {
   });
 
   it("error", async () => {
-    nameIn = "asdasda";
+    const nameIn = "asdasda";
+    const namespaceIn = "facebook";
 
     const response = await updateRegistryVersionsOfRepo({
       nameIn,

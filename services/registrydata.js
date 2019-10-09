@@ -8,61 +8,42 @@ const { Repo } = require("../models/repo");
 const { Package } = require("../models/package");
 
 const execPromise = util.promisify(exec);
-
 const registryConfig = config.get("Registry");
 
-module.exports = {
-  getLatestPackageVersion: async (name, registry) => {
-    try {
-      let response = { data: null, error: new Error("registry_error") };
+async function getNpmPackageVersion(name) {
+  const cmd = `npm view ${name} version`;
+  const { stdout } = await execPromise(cmd);
 
-      if (registry === "npm") {
-        response = await module.exports.getNpmPackageVersion(name);
-      } else if (registry === "composer") {
-        response = await module.exports.getComposerPackageVersion(name);
-      }
+  return stdout;
+}
 
-      return { data: response, error: null };
-    } catch (e) {
-      return { data: null, error: e };
-    }
-  },
+function extractComposerPackageVersion(apiResponse) {
+  const versionGroup = Object.values(apiResponse.data.package.versions);
 
-  getNpmPackageVersion: async name => {
-    const cmd = `npm view ${name} version`;
-    const { stdout } = await execPromise(cmd);
+  const latestVersion = versionGroup.reduce((accumulator, versionData) => {
+    const versionNormalized = versionData.version_normalized;
 
-    return stdout;
-  },
+    // normalized version match, i.e 1.2.3.0
+    const regex = /^(\d+\.)(\d+\.)(\d+\.)(\d)$/;
+    const versionMatch = versionNormalized.match(regex);
 
-  extractComposerPackageVersion: apiResponse => {
-    const versionInfo = Object.values(apiResponse.data.package.versions);
+    if (Array.isArray(versionMatch)) {
+      // substring to remove the 4th degree version
+      const version = versionMatch[0].substring(0, versionMatch[0].length - 2);
 
-    let latestVersion = "";
-    for (let x = 0; x < versionInfo.length; x += 1) {
-      const versionNormalized = versionInfo[x].version_normalized;
-
-      // normalized version match, i.e 1.2.3.0
-      const regex = /^(\d+\.)(\d+\.)(\d+\.)(\d)$/;
-      const versionMatch = versionNormalized.match(regex);
-
-      if (Array.isArray(versionMatch)) {
-        // substring to remove the 4th degree version
-        const version = versionMatch[0].substring(
-          0,
-          versionMatch[0].length - 2
-        );
-
-        if (version > latestVersion) {
-          latestVersion = version;
-        }
+      if (version > accumulator) {
+        return version;
       }
     }
 
-    return latestVersion;
-  },
+    return accumulator;
+  }, "");
 
-  getComposerPackageVersion: async name => {
+  return latestVersion;
+}
+
+async function requestPackagefromComposer(name) {
+  try {
     const apiUrl = config.get("Apis.packagist.url");
 
     const apiResponse = await httpReq({
@@ -71,124 +52,172 @@ module.exports = {
       timeout: 10000
     });
 
-    const version = module.exports.extractComposerPackageVersion(apiResponse);
+    return apiResponse;
+  } catch (e) {
+    throw new Error("package_not_found_on_composer");
+  }
+}
 
-    return version;
-  },
+async function getComposerPackageVersion(name) {
+  const apiResponse = await requestPackagefromComposer(name);
 
-  updateRegistryVersionsOfRepo: async repoFilter => {
-    try {
-      const repo = await Repo.findOne(repoFilter);
-      const { packages } = repo.toObject();
+  const version = extractComposerPackageVersion(apiResponse);
 
-      // Update versions
-      const completePackageList = await module.exports.upsertPackageVersions(
-        packages
+  return version;
+}
+
+async function getLatestPackageVersion(name, registry) {
+  try {
+    let response = { data: null, error: new Error("registry_error") };
+
+    if (registry === "npm") {
+      response = await getNpmPackageVersion(name);
+    } else if (registry === "composer") {
+      response = await getComposerPackageVersion(name);
+    }
+
+    return { data: response, error: null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+async function generatePackageModelsMergedWithExistingData(packageGroup) {
+  const packagesInDB = await Package.find();
+
+  // Find missing packages and create full list
+  const packageModels = packageGroup.map(pack => {
+    const matchedPackage = packagesInDB.find(recordedPackage => {
+      return (
+        recordedPackage.name === pack.name &&
+        recordedPackage.registry === pack.registry
       );
-      if (completePackageList.error) {
-        return { data: null, error: completePackageList.error };
-      }
-
-      // Create updated package object for repo
-      const updatedPackages = packages.map((pack, idx) => {
-        return {
-          ...pack,
-          registry_version: completePackageList.data[idx].version
-        };
-      });
-
-      const updateParams = {
-        packages: updatedPackages,
-        last_updated: moment().utc()
-      };
-
-      Object.assign(repo, updateParams);
-      await repo.save();
-      return { data: "success", error: null };
-    } catch (e) {
-      return { data: null, error: e };
-    }
-  },
-
-  upsertPackageVersions: async packageGroup => {
-    try {
-      const packagesInDB = await Package.find();
-
-      // Find missing packages and create full list
-      const completePackageList = packageGroup.map(pack => {
-        const matchedPackage = packagesInDB.find(recordedPackage => {
-          return (
-            recordedPackage.name === pack.name &&
-            recordedPackage.registry === pack.registry
-          );
-        });
-
-        if (!matchedPackage) {
-          const params = {
-            name: pack.name,
-            registry: pack.registry,
-            version: "",
-            last_updated: moment().utc()
-          };
-          return new Package(params);
-        }
-
-        return matchedPackage;
-      });
-
-      // List of packages that need version check
-      const packagesWillBeUpdated = completePackageList.filter(pack => {
-        const version = pack.version || "";
-        const lastUpdated =
-          moment.utc(pack.last_updated) || moment([1970, 0, 1]);
-        const now = moment().utc();
-
-        return (
-          version === "" ||
-          now.diff(lastUpdated, "minutes") >
-            registryConfig.registryUpdateThreshold
-        );
-      });
-
-      // Get recent versions from registries
-      const packageVersionPromises = packagesWillBeUpdated.map(pack => {
-        return module.exports.getLatestPackageVersion(pack.name, pack.registry);
-      });
-      const latestPackageVersions = await Promise.all(packageVersionPromises);
-
-      // Update versions of packages
-      const packageUpdatePromises = [];
-      for (let idx = 0; idx < packagesWillBeUpdated.length; idx += 1) {
-        const pack = packagesWillBeUpdated[idx];
-        let registryVersion = "0";
-
-        const { data } = latestPackageVersions[idx];
-        if (data) {
-          registryVersion = data.trim();
-        }
-
-        pack.version = registryVersion;
-        pack.last_updated = moment().utc();
-
-        packageUpdatePromises.push(pack.save());
-      }
-
-      await Promise.all(packageUpdatePromises);
-
-      return { data: completePackageList, error: null };
-    } catch (e) {
-      return { data: null, error: e };
-    }
-  },
-
-  validatePackageInput: (name, registry) => {
-    const joiPackageSchema = Joi.object().keys({
-      name: Joi.string().required(),
-      registry: Joi.string()
-        .valid(registryConfig.registryList)
-        .required()
     });
 
-    return Joi.validate({ name, registry }, joiPackageSchema);
+    if (!matchedPackage) {
+      const params = {
+        name: pack.name,
+        registry: pack.registry,
+        version: "",
+        last_updated: moment().utc()
+      };
+      return new Package(params);
+    }
+
+    return matchedPackage;
+  });
+
+  return packageModels;
+}
+
+function doesPackageNeedUpdate(pack) {
+  const version = pack.version || "";
+  const lastUpdated = moment.utc(pack.last_updated) || moment([1970, 0, 1]);
+  const now = moment().utc();
+
+  return (
+    version === "" ||
+    now.diff(lastUpdated, "minutes") > registryConfig.registryUpdateThreshold
+  );
+}
+
+async function updatePackageVersions(packageGroup) {
+  const packageVersionPromises = packageGroup.map(pack => {
+    return getLatestPackageVersion(pack.name, pack.registry);
+  });
+  const latestPackageVersions = await Promise.all(packageVersionPromises);
+
+  const packageUpdatePromises = packageGroup.map((pack, idx) => {
+    let registryVersion = "0";
+
+    const { data } = latestPackageVersions[idx];
+    if (data) {
+      registryVersion = data.trim();
+    }
+
+    const updateParams = {
+      version: registryVersion,
+      last_updated: moment().utc()
+    };
+
+    Object.assign(pack, updateParams);
+
+    return pack.save();
+  });
+
+  const updatedPackageGroup = await Promise.all(packageUpdatePromises);
+
+  return updatedPackageGroup;
+}
+
+async function upsertPackageVersions(packageGroup) {
+  try {
+    const packageModels = await generatePackageModelsMergedWithExistingData(
+      packageGroup
+    );
+
+    const packagesWillBeUpdated = packageModels.filter(pack => {
+      return doesPackageNeedUpdate(pack);
+    });
+
+    await updatePackageVersions(packagesWillBeUpdated);
+
+    return { data: packageModels, error: null };
+  } catch (e) {
+    return { data: null, error: e };
   }
+}
+
+async function updateRegistryVersionsOfRepo(repoFilter) {
+  try {
+    const repo = await Repo.findOne(repoFilter);
+    const { packages } = repo.toObject();
+
+    // Update versions
+    const packageModels = await upsertPackageVersions(packages);
+    if (packageModels.error) {
+      return { data: null, error: packageModels.error };
+    }
+
+    // Create updated package object for repo
+    const updatedPackages = packages.map((pack, idx) => {
+      return {
+        ...pack,
+        registry_version: packageModels.data[idx].version
+      };
+    });
+
+    const updateParams = {
+      packages: updatedPackages,
+      last_updated: moment().utc()
+    };
+
+    Object.assign(repo, updateParams);
+    await repo.save();
+    return { data: "success", error: null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+function validatePackageInput(name, registry) {
+  const joiPackageSchema = Joi.object().keys({
+    name: Joi.string().required(),
+    registry: Joi.string()
+      .valid(registryConfig.registryList)
+      .required()
+  });
+
+  return Joi.validate({ name, registry }, joiPackageSchema);
+}
+
+module.exports = {
+  getLatestPackageVersion,
+  getNpmPackageVersion,
+  extractComposerPackageVersion,
+  requestPackagefromComposer,
+  getComposerPackageVersion,
+  updateRegistryVersionsOfRepo,
+  upsertPackageVersions,
+  validatePackageInput
 };

@@ -7,51 +7,55 @@ const server = require("../../../server");
 const testEmail = config.get("TestEmail");
 
 describe("Routes.repo.getdetails", () => {
-  let input;
-
   afterEach(async () => {
     await Repo.deleteMany({});
     await server.close();
   });
 
-  beforeEach(() => {
-    input = {
-      nameIn: "react",
-      namespaceIn: "facebook"
-    };
-  });
-
-  const getRepo = () =>
+  const getRepo = input =>
     request(server)
       .get("/api/repo/getdetails")
       .query(input);
 
   it("nameIn required with 400", async () => {
-    delete input.nameIn;
+    const input = {
+      namespaceIn: "facebook"
+    };
 
-    const res = await getRepo();
+    const res = await getRepo(input);
 
     expect(res.status).toBe(400);
   });
 
   it("namespaceIn required with 400", async () => {
-    delete input.namespaceIn;
+    const input = {
+      nameIn: "react"
+    };
 
-    const res = await getRepo();
+    const res = await getRepo(input);
 
     expect(res.status).toBe(400);
   });
 
   it("repo not found with 404", async () => {
-    input.namespaceIn = "sadasaddasd";
+    const input = {
+      nameIn: "react",
+      namespaceIn: "sadasfafa"
+    };
 
-    const res = await getRepo();
+    const res = await getRepo(input);
 
     expect(res.status).toBe(404);
   });
 
   it("success", async () => {
+    const input = {
+      nameIn: "react",
+      namespaceIn: "facebook"
+    };
+
     const { nameIn, namespaceIn } = input;
+
     const params = {
       name: nameIn,
       namespace: namespaceIn,
@@ -70,7 +74,7 @@ describe("Routes.repo.getdetails", () => {
     const newRepo = new Repo(params);
     await newRepo.save();
 
-    const res = await getRepo();
+    const res = await getRepo(input);
 
     expect(res.status).toBe(200);
   });

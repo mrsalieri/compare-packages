@@ -5,6 +5,8 @@ module.exports = {
     "The files you are looking for are not in Git platforms",
   input_error: "Parameters you have provided are not valid",
   no_repo_found: "No repo found with the given parameters",
+  package_not_found_on_composer:
+    "Requested package cannot be found on Composer",
   parse_error: "Files are not in valid format",
   registry_error: "Invalid registry name",
   repo_not_found: "The repo you are looking for is not in our database",

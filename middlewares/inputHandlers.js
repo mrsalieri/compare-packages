@@ -1,21 +1,27 @@
 const Joi = require("@hapi/joi");
 const MessageHandler = require("../libs/messageHandler");
 
+function processArrayInput(ary) {
+  // To handle email list inputs sent as string(Swagger Problem)
+  const arrayValidation = Joi.array().validate(ary);
+  const stringValidation = Joi.string().validate(ary);
+  let processedArray = [];
+
+  if (arrayValidation.error === null) {
+    processedArray = ary;
+  } else if (stringValidation.error === null) {
+    processedArray = ary.split(",");
+  }
+
+  return processedArray;
+}
+
 module.exports = {
   repoAddEmail: (req, res, next) => {
     const { nameIn, namespaceIn, emailListIn } = req.body;
 
-    // To handle email list inputs sent as string(Swagger Problem)
-    const arrayValidation = Joi.array().validate(emailListIn);
-    const stringValidation = Joi.string().validate(emailListIn);
-    let emailGroup = [];
-
-    if (arrayValidation.error === null) {
-      emailGroup = emailListIn;
-    } else if (stringValidation.error === null) {
-      emailGroup = emailListIn.split(",");
-    }
-    const obj = { nameIn, namespaceIn, emailGroup };
+    const emailGroup = processArrayInput(emailListIn);
+    const repo = { nameIn, namespaceIn, emailGroup };
 
     const joiRepo = Joi.object().keys({
       nameIn: Joi.string().required(),
@@ -25,7 +31,7 @@ module.exports = {
         .required()
         .items(Joi.string().email())
     });
-    const { error } = Joi.validate(obj, joiRepo);
+    const { error } = Joi.validate(repo, joiRepo);
 
     if (error) {
       return new MessageHandler(req, res)
@@ -47,15 +53,14 @@ module.exports = {
 
   repoGetDetails: (req, res, next) => {
     const { nameIn, namespaceIn } = req.query;
-
-    const obj = { nameIn, namespaceIn };
+    const repo = { nameIn, namespaceIn };
 
     const joiRepo = Joi.object().keys({
       nameIn: Joi.string().required(),
       namespaceIn: Joi.string().required()
     });
 
-    const { error } = Joi.validate(obj, joiRepo);
+    const { error } = Joi.validate(repo, joiRepo);
     if (error) {
       return new MessageHandler(req, res)
         .badRequest()
@@ -66,8 +71,8 @@ module.exports = {
 
     // inputs are lowercased for db operations
     req.query.repoGetDetails = {
-      name: obj.nameIn.toLowerCase(),
-      namespace: obj.namespaceIn.toLowerCase()
+      name: nameIn.toLowerCase(),
+      namespace: namespaceIn.toLowerCase()
     };
 
     return next();

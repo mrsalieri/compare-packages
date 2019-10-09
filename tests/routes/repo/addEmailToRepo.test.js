@@ -9,79 +9,95 @@ const testEmail = config.get("TestEmail");
 jest.setTimeout(60000);
 
 describe("Routes.repo.addemail", () => {
-  let input;
-
   afterEach(async () => {
     await Repo.deleteMany({});
     await Package.deleteMany({});
     await server.close();
   });
 
-  beforeEach(() => {
-    input = {
-      nameIn: "react",
-      namespaceIn: "facebook",
-      emailListIn: [testEmail]
-    };
-  });
-
-  const addEmail = () =>
+  const addEmail = input =>
     request(server)
       .post("/api/repo/addemail")
       .send(input);
 
   it("nameIn required with 400", async () => {
-    delete input.nameIn;
+    const input = {
+      namespaceIn: "facebook",
+      emailListIn: [testEmail]
+    };
 
-    const res = await addEmail();
+    const res = await addEmail(input);
 
     expect(res.status).toBe(400);
   });
 
   it("namespaceIn required with 400", async () => {
-    delete input.namespaceIn;
+    const input = {
+      nameIn: "react",
+      emailListIn: [testEmail]
+    };
 
-    const res = await addEmail();
+    const res = await addEmail(input);
 
     expect(res.status).toBe(400);
   });
 
   it("emailListIn required with 400", async () => {
-    delete input.emailListIn;
+    const input = {
+      nameIn: "react",
+      namespaceIn: "facebook"
+    };
 
-    const res = await addEmail();
+    const res = await addEmail(input);
 
     expect(res.status).toBe(400);
   });
 
   it("emailListIn invalid email fail with 400", async () => {
-    input.emailListIn = ["sd"];
+    const input = {
+      nameIn: "react",
+      namespaceIn: "facebook",
+      emailListIn: ["sd"]
+    };
 
-    const res = await addEmail();
+    const res = await addEmail(input);
 
     expect(res.status).toBe(400);
   });
 
   it("emailListIn empty list fail with 400", async () => {
-    input.emailListIn = [];
+    const input = {
+      nameIn: "react",
+      namespaceIn: "facebook",
+      emailListIn: []
+    };
 
-    const res = await addEmail();
+    const res = await addEmail(input);
 
     expect(res.status).toBe(400);
   });
 
   it("repo not found with 404", async () => {
-    input.namespaceIn = "sadasaddasd";
+    const input = {
+      nameIn: "react",
+      namespaceIn: "sadasaddasd",
+      emailListIn: [testEmail]
+    };
 
-    const res = await addEmail();
+    const res = await addEmail(input);
 
     expect(res.status).toBe(404);
   });
 
   it("success", async () => {
+    const input = {
+      nameIn: "react",
+      namespaceIn: "facebook",
+      emailListIn: [testEmail]
+    };
     const { nameIn, namespaceIn, emailListIn } = input;
 
-    const res = await addEmail();
+    const res = await addEmail(input);
     expect(res.status).toBe(200);
 
     const repo = await Repo.findOne({
